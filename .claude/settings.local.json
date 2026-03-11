@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm:*)",
+      "Bash(npm install:*)",
+      "Bash(npm:*)",
+      "Bash(sudo chown:*)",
+      "Bash(npx vite:*)"
+    ]
+  }
+}
