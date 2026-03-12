@@ -10,9 +10,9 @@ const iconos = {
 }
 
 const estilos = {
-  exito: 'bg-emerald-50 border-emerald-200 text-emerald-800',
-  error: 'bg-red-50 border-red-200 text-red-800',
-  info: 'bg-blue-50 border-blue-200 text-blue-800',
+  exito: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-800 dark:text-emerald-400',
+  error: 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-800 dark:text-red-400',
+  info: 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20 text-blue-800 dark:text-blue-400',
 }
 
 const estilosIcono = {
@@ -52,7 +52,7 @@ export function ToastProvider({ children }) {
               <p className="text-sm font-medium flex-1">{toast.mensaje}</p>
               <button
                 onClick={() => cerrarToast(toast.id)}
-                className="p-1 rounded-full hover:bg-black/5 transition-colors"
+                className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors opacity-70 hover:opacity-100"
               >
                 <X size={14} />
               </button>

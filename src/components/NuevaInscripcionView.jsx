@@ -118,24 +118,26 @@ export default function NuevaInscripcionView() {
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="p-8 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-800">Nueva Inscripción</h2>
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Nueva Inscripción</h2>
         <Link
           to="/"
-          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 font-medium transition-colors no-underline"
+          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-medium transition-colors no-underline"
         >
           <ArrowLeft size={16} />
           Volver
         </Link>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 mt-6 space-y-8">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm dark:shadow-none border border-slate-100 dark:border-slate-800 p-8 space-y-8">
         <fieldset>
-          <legend className="text-sm font-semibold text-slate-800 mb-4">Información Personal</legend>
+          <legend className="text-sm font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-4 border-b border-slate-100 dark:border-slate-800 pb-2 w-full">
+            1. Información Personal
+          </legend>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm text-slate-600 mb-1.5">Nombre(s) <span className="text-red-400">*</span></label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Nombre(s) <span className="text-red-400">*</span></label>
               <input
                 type="text"
                 value={nombre}
@@ -146,7 +148,7 @@ export default function NuevaInscripcionView() {
               {errores.nombre && <p className="text-xs text-red-500 mt-1">Campo obligatorio</p>}
             </div>
             <div>
-              <label className="block text-sm text-slate-600 mb-1.5">Apellido(s) <span className="text-red-400">*</span></label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Apellido(s) <span className="text-red-400">*</span></label>
               <input
                 type="text"
                 value={apellido}
@@ -157,12 +159,12 @@ export default function NuevaInscripcionView() {
               {errores.apellido && <p className="text-xs text-red-500 mt-1">Campo obligatorio</p>}
             </div>
             <div>
-              <label className="block text-sm text-slate-600 mb-1.5">Documento de Identidad <span className="text-red-400">*</span></label>
-              <div className={`flex rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-red-100 focus-within:border-red-400 ${errores.numDoc ? 'border border-red-300 bg-red-50' : 'border border-slate-200'}`}>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Documento de Identidad <span className="text-red-400">*</span></label>
+              <div className={`flex rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-red-100 focus-within:border-red-400 ${errores.numDoc ? 'border border-red-300 bg-red-50' : 'border border-slate-200 dark:border-slate-700'}`}>
                 <select
                   value={tipoDoc}
                   onChange={(e) => setTipoDoc(e.target.value)}
-                  className="bg-slate-50 text-sm text-slate-700 py-2.5 px-3 border-r border-slate-200 focus:outline-none"
+                  className="bg-slate-50 dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 py-2.5 px-3 border-r border-slate-200 dark:border-slate-700 focus:outline-none"
                 >
                   <option value="dni">DNI</option>
                   <option value="extranjeria">C. Extranjería</option>
@@ -178,13 +180,13 @@ export default function NuevaInscripcionView() {
                   }}
                   maxLength={tipoDoc === 'dni' ? 8 : 12}
                   placeholder={tipoDoc === 'dni' ? '8 dígitos' : 'Número de documento'}
-                  className={`flex-1 text-sm text-slate-700 py-2.5 px-4 placeholder:text-slate-400 focus:outline-none ${errores.numDoc ? 'bg-red-50' : 'bg-slate-50'}`}
+                  className={`flex-1 text-sm text-slate-700 dark:text-slate-200 py-2.5 px-4 placeholder:text-slate-400 focus:outline-none ${errores.numDoc ? 'bg-red-50 dark:bg-red-950' : 'bg-slate-50 dark:bg-slate-800'}`}
                 />
               </div>
               {errores.numDoc && <p className="text-xs text-red-500 mt-1">{numDoc.trim() ? 'DNI debe tener 8 dígitos' : 'Campo obligatorio'}</p>}
             </div>
             <div>
-              <label className="block text-sm text-slate-600 mb-1.5">N° de Celular <span className="text-red-400">*</span></label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">N° de Celular <span className="text-red-400">*</span></label>
               <input
                 type="tel"
                 value={celular}
@@ -203,10 +205,10 @@ export default function NuevaInscripcionView() {
         </fieldset>
 
         <div>
-          <h3 className="text-lg font-semibold text-slate-700 mt-8 mb-4 border-b border-slate-100 pb-2">Contacto de Emergencia</h3>
+          <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200 mt-8 mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Contacto de Emergencia</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm text-slate-600 mb-1.5">Nombre del Contacto</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Nombre del Contacto</label>
               <input
                 type="text"
                 value={contactoNombre}
@@ -216,7 +218,7 @@ export default function NuevaInscripcionView() {
               />
             </div>
             <div>
-              <label className="block text-sm text-slate-600 mb-1.5">Teléfono de Emergencia</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Teléfono de Emergencia</label>
               <input
                 type="tel"
                 value={contactoTelefono}
@@ -230,16 +232,18 @@ export default function NuevaInscripcionView() {
         </div>
 
         <fieldset>
-          <legend className="text-sm font-semibold text-slate-800 mb-4">Detalles de Suscripción</legend>
+          <legend className="text-sm font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-4 border-b border-slate-100 dark:border-slate-800 pb-2 w-full">
+            2. Detalles de Suscripción
+          </legend>
 
-          <div className="flex bg-slate-100 rounded-lg p-1 w-fit mb-6">
+          <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 w-fit mb-6">
             <button
               type="button"
               onClick={() => setModoFecha('automatico')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                 modoFecha === 'automatico'
-                  ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
               }`}
             >
               Automático (Planes)
@@ -249,8 +253,8 @@ export default function NuevaInscripcionView() {
               onClick={() => setModoFecha('personalizado')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                 modoFecha === 'personalizado'
-                  ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
               }`}
             >
               Personalizado
@@ -260,7 +264,7 @@ export default function NuevaInscripcionView() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {modoFecha === 'automatico' && (
               <div>
-                <label className="block text-sm text-slate-600 mb-1.5">Plan</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Plan</label>
                 <select value={plan} onChange={(e) => setPlan(e.target.value)} className={inputClasses}>
                   {Object.entries(planes).map(([key, { label }]) => (
                     <option key={key} value={key}>{label}</option>
@@ -269,7 +273,7 @@ export default function NuevaInscripcionView() {
               </div>
             )}
             <div>
-              <label className="block text-sm text-slate-600 mb-1.5">Fecha de Inicio {modoFecha === 'personalizado' && <span className="text-red-400">*</span>}</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Fecha de Inicio {modoFecha === 'personalizado' && <span className="text-red-400">*</span>}</label>
               <input
                 type="date"
                 value={fechaInicio}
@@ -280,7 +284,7 @@ export default function NuevaInscripcionView() {
               {errores.fechaInicio && <p className="text-xs text-red-500 mt-1">Fecha requerida</p>}
             </div>
             <div>
-              <label className="block text-sm text-slate-600 mb-1.5">Fecha de Fin {modoFecha === 'personalizado' && <span className="text-red-400">*</span>}</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Fecha de Fin {modoFecha === 'personalizado' && <span className="text-red-400">*</span>}</label>
               <input
                 type="date"
                 value={fechaFin}
@@ -291,7 +295,7 @@ export default function NuevaInscripcionView() {
               {errores.fechaFin && <p className="text-xs text-red-500 mt-1">{fechaFin ? 'La fecha fin debe ser posterior al inicio' : 'Fecha requerida'}</p>}
             </div>
             <div>
-              <label className="block text-sm text-slate-600 mb-1.5">Turno</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Turno</label>
               <select value={turno} onChange={(e) => setTurno(e.target.value)} className={inputClasses}>
                 <option value="">Seleccionar turno</option>
                 <option value="mañana">Mañana</option>
@@ -302,10 +306,12 @@ export default function NuevaInscripcionView() {
         </fieldset>
 
         <fieldset>
-          <legend className="text-sm font-semibold text-slate-800 mb-4">Datos de Pago</legend>
+          <legend className="text-sm font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-4 border-b border-slate-100 dark:border-slate-800 pb-2 w-full">
+            3. Datos de Pago
+          </legend>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm text-slate-600 mb-1.5">Monto (S/) <span className="text-red-400">*</span></label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Monto (S/) <span className="text-red-400">*</span></label>
               <input
                 type="number"
                 value={monto}
@@ -318,19 +324,19 @@ export default function NuevaInscripcionView() {
               {errores.monto && <p className="text-xs text-red-500 mt-1">Ingresa el monto</p>}
             </div>
             <div>
-              <label className="block text-sm text-slate-600 mb-1.5">Otros</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Otros</label>
               <input type="text" value={otros} onChange={(e) => setOtros(e.target.value)} placeholder="Detalle adicional" className={inputClasses} />
             </div>
             <div>
-              <label className="block text-sm text-slate-600 mb-1.5">N° de Recibo</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">N° de Recibo</label>
               <input type="text" value={recibo} onChange={(e) => setRecibo(e.target.value)} placeholder="000-0000" className={inputClasses} />
             </div>
             <div>
-              <label className="block text-sm text-slate-600 mb-1.5">N° Boleta Electrónica</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">N° Boleta Electrónica</label>
               <input type="text" value={boleta} onChange={(e) => setBoleta(e.target.value)} placeholder="BE-000000" className={inputClasses} />
             </div>
             <div>
-              <label className="block text-sm text-slate-600 mb-1.5">N° de Depósito</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">N° de Depósito</label>
               <input type="text" value={deposito} onChange={(e) => setDeposito(e.target.value)} placeholder="DEP-000000" className={inputClasses} />
             </div>
           </div>

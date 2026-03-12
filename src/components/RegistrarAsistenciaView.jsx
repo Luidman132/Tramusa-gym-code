@@ -222,35 +222,35 @@ export default function RegistrarAsistenciaView() {
 
   return (
     <div className="p-8">
-      <h2 className="text-2xl font-bold text-slate-800 mb-6">Registrar Asistencia</h2>
+      <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-6">Registrar Asistencia</h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
           {/* Barra de busqueda */}
           <div className="relative">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={22} />
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={22} />
             <input
               type="text"
               value={busqueda}
               onChange={handleSearch}
               placeholder="Buscar DNI o Nombres..."
-              className="w-full py-4 pl-14 pr-6 text-lg bg-white shadow-sm rounded-2xl border border-slate-200 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-100 focus:border-red-400 transition-all"
+              className="w-full py-4 pl-14 pr-6 text-lg bg-white dark:bg-slate-900 shadow-sm dark:shadow-none rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/20 focus:border-red-400 dark:focus:border-red-500/50 transition-all"
             />
             {busqueda.trim().length > 2 && !clienteSeleccionado && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 max-h-64 overflow-y-auto z-50">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-xl shadow-xl dark:shadow-none border border-slate-100 dark:border-slate-800 max-h-64 overflow-y-auto z-50">
                 {resultadosBusqueda.length > 0 ? (
                   resultadosBusqueda.map((cliente) => (
                     <div
                       key={cliente.id}
                       onClick={() => seleccionarCliente(cliente)}
-                      className="p-4 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-0 flex justify-between items-center transition-colors"
+                      className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer border-b border-slate-50 dark:border-slate-800/50 last:border-0 flex justify-between items-center transition-colors"
                     >
-                      <span className="text-slate-700 font-medium">{cliente.nombre}</span>
-                      <span className="text-sm text-slate-400">{cliente.dni}</span>
+                      <span className="text-slate-700 dark:text-slate-200 font-medium">{cliente.nombre}</span>
+                      <span className="text-sm text-slate-400 dark:text-slate-500">{cliente.dni}</span>
                     </div>
                   ))
                 ) : (
-                  <div className="p-4 text-sm text-slate-400 text-center">No se encontraron clientes.</div>
+                  <div className="p-4 text-sm text-slate-400 dark:text-slate-500 text-center">No se encontraron clientes.</div>
                 )}
               </div>
             )}
@@ -261,22 +261,22 @@ export default function RegistrarAsistenciaView() {
             <button
               type="button"
               onClick={() => setMostrandoPaseRapido(true)}
-              className="w-full flex items-center justify-between p-6 bg-white rounded-2xl shadow-sm border border-slate-200 hover:border-red-300 hover:shadow-md transition-all group text-left cursor-pointer mt-4"
+              className="w-full flex items-center justify-between p-6 bg-white dark:bg-slate-900 rounded-2xl shadow-sm dark:shadow-none border border-slate-200 dark:border-slate-800 hover:border-red-300 dark:hover:border-red-500/50 hover:shadow-md transition-all group text-left cursor-pointer mt-4"
             >
               <div className="flex items-center gap-5">
-                <div className="p-4 bg-red-50 rounded-xl text-red-600 group-hover:bg-red-100 group-hover:scale-105 transition-all">
+                <div className="p-4 bg-red-50 dark:bg-red-500/10 rounded-xl text-red-600 dark:text-red-400 group-hover:bg-red-100 dark:group-hover:bg-red-500/20 group-hover:scale-105 transition-all">
                   <UserPlus size={28} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-800">Registrar Visita Libre</h3>
-                  <p className="text-sm text-slate-500 mt-1">Ingresa el nombre y el monto para personas no registradas.</p>
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Registrar Visita Libre</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Ingresa el nombre y el monto para personas no registradas.</p>
                 </div>
               </div>
-              <ArrowRight size={20} className="text-slate-300 group-hover:text-red-500 group-hover:translate-x-1 transition-all shrink-0" />
+              <ArrowRight size={20} className="text-slate-300 dark:text-slate-600 group-hover:text-red-500 dark:group-hover:text-red-400 group-hover:translate-x-1 transition-all shrink-0" />
             </button>
           ) : (
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4">
-              <h4 className="text-sm font-semibold text-slate-700">Registrar Visita Libre</h4>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-4">
+              <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Registrar Visita Libre</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <input type="text" value={nombresVisita} onChange={(e) => { setNombresVisita(e.target.value); limpiarErrorVisita('nombres') }} placeholder="Nombre(s) *" className={erroresVisita.nombres ? inputErrorClasses : inputClasses} />
                 <input type="text" value={apellidosVisita} onChange={(e) => { setApellidosVisita(e.target.value); limpiarErrorVisita('apellidos') }} placeholder="Apellido(s) *" className={erroresVisita.apellidos ? inputErrorClasses : inputClasses} />
@@ -286,7 +286,7 @@ export default function RegistrarAsistenciaView() {
                 <input type="text" value={montoVisita} onChange={(e) => { const v = handleMontoInput(e.target.value); if (v !== null) setMontoVisita(v); limpiarErrorVisita('monto') }} onBlur={() => setMontoVisita(formatMontoBlur(montoVisita))} placeholder="Monto S/ *" className={erroresVisita.monto ? inputErrorClasses : inputClasses} />
               </div>
               <div className="flex justify-end items-center gap-3 pt-2">
-                <button type="button" onClick={resetFormularioVisita} className="text-slate-400 hover:text-slate-600 px-3 py-3 text-sm font-medium transition-colors">Cancelar</button>
+                <button type="button" onClick={resetFormularioVisita} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 px-3 py-3 text-sm font-medium transition-colors">Cancelar</button>
                 <button type="button" onClick={registrarVisitaLibre} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-3 px-6 font-semibold transition-colors">Registrar Pago y Acceso</button>
               </div>
             </div>
@@ -294,36 +294,36 @@ export default function RegistrarAsistenciaView() {
 
           {/* Tarjeta del cliente seleccionado */}
           {clienteSeleccionado && estilo && (
-            <div className={`p-6 rounded-2xl shadow-sm border relative ${estilo.contenedor}`}>
-              <button onClick={() => setMostrarModalEditarCliente(true)} className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"><Pencil size={18} /></button>
+            <div className={`p-6 rounded-2xl shadow-sm dark:shadow-none border relative ${estilo.contenedor}`}>
+              <button onClick={() => setMostrarModalEditarCliente(true)} className="absolute top-4 right-4 p-2 rounded-full text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"><Pencil size={18} /></button>
               <div className="flex items-start gap-5">
-                <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
-                  <UserCircle size={40} className="text-slate-400" />
+                <div className="w-16 h-16 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                  <UserCircle size={40} className="text-slate-400 dark:text-slate-500" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    {clienteSeleccionado.estado === 'pase_activo' && <Ticket size={18} className="text-blue-600" />}
+                    {clienteSeleccionado.estado === 'pase_activo' && <Ticket size={18} className="text-blue-600 dark:text-blue-400" />}
                     <h3 className={`text-lg font-bold ${estilo.texto}`}>{estilo.titulo}</h3>
                   </div>
-                  <p className="text-base font-semibold text-slate-800 mt-1">{clienteSeleccionado.nombre}</p>
+                  <p className="text-base font-semibold text-slate-800 dark:text-slate-100 mt-1">{clienteSeleccionado.nombre}</p>
                   <div className="mt-3 flex items-center gap-6 text-sm">
                     <div>
-                      <span className="text-slate-500">Plan</span>
+                      <span className="text-slate-500 dark:text-slate-400">Plan</span>
                       <p className={`font-semibold ${estilo.texto}`}>{clienteSeleccionado.plan}</p>
                     </div>
                     <div>
-                      <span className="text-slate-500">Vence</span>
+                      <span className="text-slate-500 dark:text-slate-400">Vence</span>
                       <p className={`font-semibold ${estilo.texto}`}>{clienteSeleccionado.fin}</p>
                     </div>
                     {clienteSeleccionado.estado === 'pase_activo' && (
                       <div>
-                        <span className="text-slate-500">Dias restantes</span>
-                        <p className="font-semibold text-blue-900">{clienteSeleccionado.diasRestantes}</p>
+                        <span className="text-slate-500 dark:text-slate-400">Dias restantes</span>
+                        <p className="font-semibold text-blue-900 dark:text-blue-200">{clienteSeleccionado.diasRestantes}</p>
                       </div>
                     )}
                   </div>
                   {clienteSeleccionado.estado === 'pase_activo' && (
-                    <p className="text-sm font-medium text-blue-700 mt-2">Le quedan {clienteSeleccionado.diasRestantes} dia(s) de acceso.</p>
+                    <p className="text-sm font-medium text-blue-700 dark:text-blue-400 mt-2">Le quedan {clienteSeleccionado.diasRestantes} dia(s) de acceso.</p>
                   )}
                 </div>
               </div>
@@ -354,13 +354,13 @@ export default function RegistrarAsistenciaView() {
 
         {/* Panel de historial */}
         <div className="col-span-1">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-150 flex flex-col">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm dark:shadow-none border border-slate-100 dark:border-slate-800 h-150 flex flex-col">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-800">Registro de Recepcion</h3>
+              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Registro de Recepcion</h3>
               <select
                 value={filtroTiempo}
                 onChange={(e) => setFiltroTiempo(e.target.value)}
-                className="bg-slate-50 border border-slate-200 text-slate-600 text-sm rounded-lg focus:ring-red-100 focus:border-red-400 py-1.5 px-3 outline-none cursor-pointer"
+                className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm rounded-lg focus:ring-red-100 dark:focus:ring-red-500/20 focus:border-red-400 py-1.5 px-3 outline-none cursor-pointer"
               >
                 <option value="hoy">Hoy</option>
                 <option value="ayer">Ayer</option>
@@ -370,31 +370,31 @@ export default function RegistrarAsistenciaView() {
               </select>
             </div>
             <div className="flex gap-2 mb-6">
-              <span className="bg-emerald-50 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-md">{totalAsistencias} Entradas</span>
-              <span className="bg-blue-50 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-md">{totalCobros} Cobros</span>
+              <span className="bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold px-2.5 py-1 rounded-md">{totalAsistencias} Entradas</span>
+              <span className="bg-blue-50 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 text-xs font-bold px-2.5 py-1 rounded-md">{totalCobros} Cobros</span>
             </div>
 
             {historialFiltrado.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
-                  <UserCircle size={24} className="text-slate-400" />
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3">
+                  <UserCircle size={24} className="text-slate-400 dark:text-slate-500" />
                 </div>
-                <p className="text-sm text-slate-400">Sin movimientos registrados</p>
+                <p className="text-sm text-slate-400 dark:text-slate-500">Sin movimientos registrados</p>
               </div>
             ) : (
               <ul className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
                 {historialFiltrado.map((item) => (
-                  <li key={item.id} className="flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-100">
-                    <span className="text-sm font-mono font-semibold text-slate-500 w-14 shrink-0">{formatHora(item.hora)}</span>
+                  <li key={item.id} className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                    <span className="text-sm font-mono font-semibold text-slate-500 dark:text-slate-400 w-14 shrink-0">{formatHora(item.hora)}</span>
                     <div className="flex-1 min-w-0">
-                      {item.tipo === 'asistencia' && <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 mb-1">ASISTENCIA</span>}
-                      {item.tipo === 'cobro' && <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 mb-1">SOLO COBRO</span>}
-                      {item.tipo === 'cobro_asistencia' && <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 mb-1">COBRO + ENTRADA</span>}
-                      <p className="text-sm text-slate-700 font-medium truncate">{item.titulo}</p>
-                      <p className="text-xs text-slate-400 truncate">{item.detalle}</p>
+                      {item.tipo === 'asistencia' && <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 mb-1">ASISTENCIA</span>}
+                      {item.tipo === 'cobro' && <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 mb-1">SOLO COBRO</span>}
+                      {item.tipo === 'cobro_asistencia' && <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 mb-1">COBRO + ENTRADA</span>}
+                      <p className="text-sm text-slate-700 dark:text-slate-200 font-medium truncate">{item.titulo}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{item.detalle}</p>
                     </div>
-                    <span className="bg-slate-100 text-slate-600 rounded-full px-2 py-1 text-xs font-medium shrink-0">{item.turno}</span>
-                    <button onClick={() => setRegistroAEditar(item)} className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all ml-2 shrink-0"><Pencil size={16} /></button>
+                    <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full px-2 py-1 text-xs font-medium shrink-0">{item.turno}</span>
+                    <button onClick={() => setRegistroAEditar(item)} className="p-2 text-slate-300 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-all ml-2 shrink-0"><Pencil size={16} /></button>
                   </li>
                 ))}
               </ul>

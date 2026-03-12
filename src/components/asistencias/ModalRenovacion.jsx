@@ -43,30 +43,30 @@ export default function ModalRenovacion({ cliente, onConfirmar, onCerrar }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
-        <div className="bg-red-50 p-6 flex items-center justify-between">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-transparent dark:border-slate-800">
+        <div className="bg-red-50 dark:bg-red-900/20 p-6 flex items-center justify-between border-b border-transparent dark:border-slate-800/50">
           <div>
-            <h3 className="text-lg font-bold text-red-800">Renovar Suscripción</h3>
-            <p className="text-sm text-red-600 mt-1">{cliente.nombre}</p>
+            <h3 className="text-lg font-bold text-red-800 dark:text-red-300">Renovar Suscripción</h3>
+            <p className="text-sm text-red-600 dark:text-red-400 mt-1">{cliente.nombre}</p>
           </div>
           <button
             type="button"
             onClick={onCerrar}
-            className="p-2 rounded-full hover:bg-red-100 text-red-400 hover:text-red-600 transition-colors"
+            className="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-800/50 text-red-400 dark:text-red-500 hover:text-red-600 dark:hover:text-red-300 transition-colors"
           >
             <X size={20} />
           </button>
         </div>
 
         <div className="p-6 space-y-5">
-          <div className="flex bg-slate-100 rounded-lg p-1 w-fit">
+          <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 w-fit">
             <button
               type="button"
               onClick={() => setModoFecha('automatico')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                 modoFecha === 'automatico'
-                  ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
               }`}
             >
               Automático (Planes)
@@ -76,8 +76,8 @@ export default function ModalRenovacion({ cliente, onConfirmar, onCerrar }) {
               onClick={() => setModoFecha('personalizado')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                 modoFecha === 'personalizado'
-                  ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
               }`}
             >
               Personalizado
@@ -86,7 +86,7 @@ export default function ModalRenovacion({ cliente, onConfirmar, onCerrar }) {
 
           {modoFecha === 'automatico' && (
             <div>
-              <label className="block text-sm text-slate-600 mb-1.5">Plan</label>
+              <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1.5">Plan</label>
               <select value={plan} onChange={(e) => setPlan(e.target.value)} className={inputClasses}>
                 {Object.entries(planes).map(([key, { label }]) => (
                   <option key={key} value={key}>{label}</option>
@@ -97,7 +97,7 @@ export default function ModalRenovacion({ cliente, onConfirmar, onCerrar }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-slate-600 mb-1.5">Fecha de Inicio</label>
+              <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1.5">Fecha de Inicio</label>
               <input
                 type="date"
                 value={inicioCalculado}
@@ -107,7 +107,7 @@ export default function ModalRenovacion({ cliente, onConfirmar, onCerrar }) {
               />
             </div>
             <div>
-              <label className="block text-sm text-slate-600 mb-1.5">Fecha de Fin</label>
+              <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1.5">Fecha de Fin</label>
               <input
                 type="date"
                 value={finCalculado}
@@ -120,7 +120,7 @@ export default function ModalRenovacion({ cliente, onConfirmar, onCerrar }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-slate-600 mb-1.5">Monto S/</label>
+              <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1.5">Monto S/</label>
               <input
                 type="text"
                 value={monto}
@@ -132,7 +132,7 @@ export default function ModalRenovacion({ cliente, onConfirmar, onCerrar }) {
               {errores.monto && <p className="text-xs text-red-500 mt-1">Ingresa el monto</p>}
             </div>
             <div>
-              <label className="block text-sm text-slate-600 mb-1.5">Turno</label>
+              <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1.5">Turno</label>
               <select value={turno} onChange={(e) => setTurno(e.target.value)} className={inputClasses}>
                 <option value="mañana">Mañana</option>
                 <option value="tarde">Tarde</option>
@@ -141,7 +141,7 @@ export default function ModalRenovacion({ cliente, onConfirmar, onCerrar }) {
           </div>
 
           <div>
-            <label className="block text-sm text-slate-600 mb-1.5">N° de Recibo / Boleta</label>
+            <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1.5">N° de Recibo / Boleta</label>
             <input
               type="text"
               value={recibo}
@@ -152,18 +152,18 @@ export default function ModalRenovacion({ cliente, onConfirmar, onCerrar }) {
           </div>
         </div>
 
-        <div className="p-6 border-t border-slate-100 flex justify-end gap-3">
+        <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
           <button
             type="button"
             onClick={onCerrar}
-            className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             Cancelar
           </button>
           <button
             type="button"
             onClick={handleConfirmar}
-            className="bg-red-600 hover:bg-red-700 text-white rounded-xl py-2.5 px-6 font-semibold transition-colors"
+            className="bg-red-600 dark:bg-red-500 hover:bg-red-700 dark:hover:bg-red-600 text-white rounded-xl py-2.5 px-6 font-semibold transition-colors"
           >
             Confirmar Renovación
           </button>

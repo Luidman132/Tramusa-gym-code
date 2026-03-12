@@ -128,59 +128,59 @@ export default function CalendarioView() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
-      <h2 className="text-2xl font-bold text-slate-800 mb-6">Calendario</h2>
+      <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-6">Calendario</h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Calendario */}
         <div className="lg:col-span-2">
           {/* Resumen del mes */}
           <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="bg-white rounded-xl p-3 border border-slate-100 shadow-sm flex items-center gap-3">
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-100 dark:border-slate-800 shadow-sm dark:shadow-none flex items-center gap-3">
               <AlertTriangle size={16} className="text-amber-500" />
               <div>
-                <p className="text-lg font-bold text-slate-800">{vencimientosMes}</p>
-                <p className="text-[11px] text-slate-400">vencen este mes</p>
+                <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{vencimientosMes}</p>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">vencen este mes</p>
               </div>
             </div>
-            <div className="bg-white rounded-xl p-3 border border-slate-100 shadow-sm flex items-center gap-3">
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-100 dark:border-slate-800 shadow-sm dark:shadow-none flex items-center gap-3">
               <CalendarCheck size={16} className="text-emerald-500" />
               <div>
-                <p className="text-lg font-bold text-slate-800">{asistenciasMes}</p>
-                <p className="text-[11px] text-slate-400">asistencias del mes</p>
+                <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{asistenciasMes}</p>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">asistencias del mes</p>
               </div>
             </div>
-            <div className="bg-white rounded-xl p-3 border border-slate-100 shadow-sm flex items-center gap-3">
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-100 dark:border-slate-800 shadow-sm dark:shadow-none flex items-center gap-3">
               <DollarSign size={16} className="text-violet-500" />
               <div>
-                <p className="text-lg font-bold text-slate-800">S/ {ingresosMes.toFixed(0)}</p>
-                <p className="text-[11px] text-slate-400">ingresos del mes</p>
+                <p className="text-lg font-bold text-slate-800 dark:text-slate-100">S/ {ingresosMes.toFixed(0)}</p>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">ingresos del mes</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm dark:shadow-none border border-slate-100 dark:border-slate-800 overflow-hidden">
             {/* Header navegacion */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <button onClick={mesAnterior} className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+              <button onClick={mesAnterior} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors">
                 <ChevronLeft size={20} />
               </button>
               <div className="flex items-center gap-3">
-                <h3 className="text-lg font-bold text-slate-800">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
                   {MESES[mesActual]} {anioActual}
                 </h3>
-                <button onClick={irAHoy} className="text-xs text-red-500 hover:text-red-700 font-medium px-2.5 py-1 rounded-lg hover:bg-red-50 transition-colors">
+                <button onClick={irAHoy} className="text-xs text-red-500 hover:text-red-600 dark:hover:text-red-400 font-medium px-2.5 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
                   Hoy
                 </button>
               </div>
-              <button onClick={mesSiguiente} className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors">
+              <button onClick={mesSiguiente} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors">
                 <ChevronRight size={20} />
               </button>
             </div>
 
             {/* Dias de la semana */}
-            <div className="grid grid-cols-7 border-b border-slate-100">
+            <div className="grid grid-cols-7 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
               {DIAS_SEMANA.map(d => (
-                <div key={d} className="text-center py-2.5 text-xs font-semibold text-slate-400">
+                <div key={d} className="text-center py-2.5 text-xs font-semibold text-slate-400 dark:text-slate-500">
                   {d}
                 </div>
               ))}
@@ -200,12 +200,12 @@ export default function CalendarioView() {
                   <button
                     key={i}
                     onClick={() => setDiaSeleccionado(dia.fecha)}
-                    className={`relative py-3 px-1 border-b border-r border-slate-50 text-center transition-all hover:bg-slate-50 ${
-                      !dia.esMesActual ? 'text-slate-300' : 'text-slate-700'
-                    } ${esSeleccionado ? 'bg-red-50 ring-1 ring-red-200' : ''}`}
+                    className={`relative py-3 px-1 border-b border-r border-slate-50 dark:border-slate-800/50 text-center transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
+                      !dia.esMesActual ? 'text-slate-300 dark:text-slate-600' : 'text-slate-700 dark:text-slate-300'
+                    } ${esSeleccionado ? 'bg-red-50 dark:bg-red-500/10 ring-1 ring-red-200 dark:ring-red-500/30' : ''}`}
                   >
                     <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
-                      esHoy ? 'bg-red-600 text-white' : ''
+                      esHoy ? 'bg-red-600 text-white shadow-sm shadow-red-500/30' : ''
                     }`}>
                       {dia.fecha.getDate()}
                     </span>
@@ -226,20 +226,20 @@ export default function CalendarioView() {
             </div>
 
             {/* Leyenda */}
-            <div className="flex items-center justify-center gap-6 py-3 border-t border-slate-100">
+            <div className="flex items-center justify-center gap-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/10">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-amber-400" />
-                <span className="text-[11px] text-slate-400">Vencimientos</span>
+                <span className="text-[11px] text-slate-400 dark:text-slate-500">Vencimientos</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span className="text-[11px] text-slate-400">Actividad</span>
+                <span className="text-[11px] text-slate-400 dark:text-slate-500">Actividad</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-4 h-4 rounded-full bg-red-600 flex items-center justify-center">
+                <span className="w-4 h-4 rounded-full bg-red-600 flex items-center justify-center shadow-sm shadow-red-500/30">
                   <span className="text-[8px] text-white font-bold">{hoy.getDate()}</span>
                 </span>
-                <span className="text-[11px] text-slate-400">Hoy</span>
+                <span className="text-[11px] text-slate-400 dark:text-slate-500">Hoy</span>
               </div>
             </div>
           </div>
@@ -247,9 +247,9 @@ export default function CalendarioView() {
 
         {/* Panel lateral - detalle del dia */}
         <div className="col-span-1">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 sticky top-6">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm dark:shadow-none border border-slate-100 dark:border-slate-800 p-6 sticky top-6">
             {!diaSeleccionado ? (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+              <div className="flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-500">
                 <CalendarCheck size={32} className="mb-3" />
                 <p className="text-sm font-medium">Selecciona un dia</p>
                 <p className="text-xs mt-1">para ver sus detalles</p>
@@ -258,46 +258,46 @@ export default function CalendarioView() {
               <>
                 <div className="flex items-center justify-between mb-5">
                   <div>
-                    <h3 className="text-base font-bold text-slate-800">
+                    <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
                       {diaSeleccionado.getDate()} de {MESES[diaSeleccionado.getMonth()]}
                     </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                       {mismaFecha(diaSeleccionado, hoy) ? 'Hoy' : DIAS_SEMANA[(diaSeleccionado.getDay() + 6) % 7]}
                     </p>
                   </div>
-                  <button onClick={() => setDiaSeleccionado(null)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors">
+                  <button onClick={() => setDiaSeleccionado(null)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 dark:text-slate-500 transition-colors">
                     <X size={16} />
                   </button>
                 </div>
 
                 {/* Resumen rapido del dia */}
                 <div className="grid grid-cols-3 gap-2 mb-5">
-                  <div className="bg-emerald-50 rounded-lg p-2 text-center">
-                    <p className="text-lg font-bold text-emerald-700">{asistenciasSel.length}</p>
-                    <p className="text-[10px] text-emerald-600">entradas</p>
+                  <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-lg p-2 text-center">
+                    <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{asistenciasSel.length}</p>
+                    <p className="text-[10px] text-emerald-600 dark:text-emerald-500">entradas</p>
                   </div>
-                  <div className="bg-violet-50 rounded-lg p-2 text-center">
-                    <p className="text-lg font-bold text-violet-700">S/{ingresosSel.toFixed(0)}</p>
-                    <p className="text-[10px] text-violet-600">ingresos</p>
+                  <div className="bg-violet-50 dark:bg-violet-500/10 rounded-lg p-2 text-center">
+                    <p className="text-lg font-bold text-violet-700 dark:text-violet-400">S/{ingresosSel.toFixed(0)}</p>
+                    <p className="text-[10px] text-violet-600 dark:text-violet-500">ingresos</p>
                   </div>
-                  <div className="bg-amber-50 rounded-lg p-2 text-center">
-                    <p className="text-lg font-bold text-amber-700">{vencimientosSel.length}</p>
-                    <p className="text-[10px] text-amber-600">vencen</p>
+                  <div className="bg-amber-50 dark:bg-amber-500/10 rounded-lg p-2 text-center">
+                    <p className="text-lg font-bold text-amber-700 dark:text-amber-400">{vencimientosSel.length}</p>
+                    <p className="text-[10px] text-amber-600 dark:text-amber-500">vencen</p>
                   </div>
                 </div>
 
                 {/* Vencimientos del dia */}
                 {vencimientosSel.length > 0 && (
                   <div className="mb-5">
-                    <h4 className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2">Vencimientos</h4>
+                    <h4 className="text-xs font-semibold text-amber-700 dark:text-amber-500 uppercase tracking-wide mb-2">Vencimientos</h4>
                     <ul className="space-y-2">
                       {vencimientosSel.map(m => (
-                        <li key={m.id} className="flex items-center justify-between p-2.5 rounded-lg bg-amber-50 border border-amber-100">
+                        <li key={m.id} className="flex items-center justify-between p-2.5 rounded-lg bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/20">
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-slate-700 truncate">{m.nombre}</p>
-                            <p className="text-[11px] text-slate-400">{m.plan}</p>
+                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{m.nombre}</p>
+                            <p className="text-[11px] text-slate-400 dark:text-slate-500">{m.plan}</p>
                           </div>
-                          <span className="shrink-0 ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200 text-amber-800">
+                          <span className="shrink-0 ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200 dark:bg-amber-500/20 text-amber-800 dark:text-amber-400">
                             {m.fin}
                           </span>
                         </li>
@@ -309,16 +309,16 @@ export default function CalendarioView() {
                 {/* Actividad del dia */}
                 {actividadSel.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-2">Actividad</h4>
-                    <ul className="space-y-2 max-h-64 overflow-y-auto">
+                    <h4 className="text-xs font-semibold text-emerald-700 dark:text-emerald-500 uppercase tracking-wide mb-2">Actividad</h4>
+                    <ul className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
                       {actividadSel.map(item => (
-                        <li key={item.id} className="flex items-center gap-2.5 p-2.5 rounded-lg bg-slate-50 border border-slate-100">
-                          <span className="text-[11px] font-mono text-slate-400 w-10 shrink-0">{formatHora(item.hora)}</span>
+                        <li key={item.id} className="flex items-center gap-2.5 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                          <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 w-10 shrink-0">{formatHora(item.hora)}</span>
                           <div className="flex-1 min-w-0">
-                            {item.tipo === 'asistencia' && <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700 mb-0.5">ENTRADA</span>}
-                            {item.tipo === 'cobro' && <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 mb-0.5">COBRO</span>}
-                            {item.tipo === 'cobro_asistencia' && <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-700 mb-0.5">COBRO+ENTRADA</span>}
-                            <p className="text-xs text-slate-700 font-medium truncate">{item.titulo}</p>
+                            {item.tipo === 'asistencia' && <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 mb-0.5">ENTRADA</span>}
+                            {item.tipo === 'cobro' && <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 mb-0.5">COBRO</span>}
+                            {item.tipo === 'cobro_asistencia' && <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 mb-0.5">COBRO+ENTRADA</span>}
+                            <p className="text-xs text-slate-700 dark:text-slate-300 font-medium truncate">{item.titulo}</p>
                           </div>
                         </li>
                       ))}
@@ -327,7 +327,7 @@ export default function CalendarioView() {
                 )}
 
                 {vencimientosSel.length === 0 && actividadSel.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-6 text-slate-400">
+                  <div className="flex flex-col items-center justify-center py-6 text-slate-400 dark:text-slate-500">
                     <p className="text-sm">Sin actividad este dia</p>
                   </div>
                 )}
