@@ -1,39 +1,26 @@
-import { useState } from 'react'
+import { Routes, Route } from 'react-router-dom'
 import DashboardLayout from './components/DashboardLayout'
 import DashboardHome from './components/DashboardHome'
 import SuscripcionesView from './components/SuscripcionesView'
 import NuevaInscripcionView from './components/NuevaInscripcionView'
 import RegistrarAsistenciaView from './components/RegistrarAsistenciaView'
+import CalendarioView from './components/CalendarioView'
+import MiembroPerfilView from './components/MiembroPerfilView'
+import ReportesView from './components/ReportesView'
 
 function App() {
-  const [vistaActual, setVistaActual] = useState('inicio')
-
-  function renderizarVista() {
-    switch (vistaActual) {
-      case 'inicio':
-        return <DashboardHome userName="Dima" setVistaActual={setVistaActual} />
-      case 'suscripciones':
-        return <SuscripcionesView />
-      case 'nueva_inscripcion':
-        return <NuevaInscripcionView setVistaActual={setVistaActual} />
-      case 'miembros':
-        return <div className="p-8 text-slate-500">Pantalla de Miembros en construcción...</div>
-      case 'asistencias':
-        return <RegistrarAsistenciaView setVistaActual={setVistaActual} />
-      case 'finanzas':
-        return <div className="p-8 text-slate-500">Pantalla de Finanzas en construcción...</div>
-      case 'planes':
-        return <div className="p-8 text-slate-500">Pantalla de Planes en construcción...</div>
-      case 'configuracion':
-        return <div className="p-8 text-slate-500">Pantalla de Configuración en construcción...</div>
-      default:
-        return <DashboardHome userName="Dima" setVistaActual={setVistaActual} />
-    }
-  }
-
   return (
-    <DashboardLayout vistaActual={vistaActual} setVistaActual={setVistaActual}>
-      {renderizarVista()}
+    <DashboardLayout>
+      <Routes>
+        <Route path="/" element={<DashboardHome userName="Dima" />} />
+        <Route path="/suscripciones" element={<SuscripcionesView />} />
+        <Route path="/nueva-inscripcion" element={<NuevaInscripcionView />} />
+        <Route path="/asistencias" element={<RegistrarAsistenciaView />} />
+        <Route path="/calendario" element={<CalendarioView />} />
+        <Route path="/miembro/:id" element={<MiembroPerfilView />} />
+        <Route path="/reportes" element={<ReportesView />} />
+        <Route path="*" element={<DashboardHome userName="Dima" />} />
+      </Routes>
     </DashboardLayout>
   )
 }

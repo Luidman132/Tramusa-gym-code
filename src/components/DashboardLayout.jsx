@@ -1,22 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
-import { Home, Users, CreditCard, CalendarCheck, DollarSign, ClipboardList, Settings, Bell, Check, BellOff } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
+import { Home, UserPlus, CreditCard, CalendarCheck, CalendarDays, BarChart3, Bell, Check, BellOff } from 'lucide-react'
 
 const logoTramusa = '/logo_empresa_tramusa.svg'
 
 const menuItems = [
-  { name: 'Inicio', id: 'inicio', icon: Home },
-  { name: 'Miembros', id: 'miembros', icon: Users },
-  { name: 'Suscripciones', id: 'suscripciones', icon: CreditCard },
-  { name: 'Asistencias', id: 'asistencias', icon: CalendarCheck },
-  { name: 'Finanzas', id: 'finanzas', icon: DollarSign },
-  { name: 'Planes', id: 'planes', icon: ClipboardList },
-  { name: 'Configuración', id: 'configuracion', icon: Settings },
-]
-
-const alertasIniciales = [
-  { id: 1, texto: 'Suscripción de Juan Pérez vence mañana', tipo: 'warning', leido: false },
-  { id: 2, texto: 'Plan de María Gómez vencido hace 3 días', tipo: 'danger', leido: false },
-  { id: 3, texto: 'Carlos López tiene pago pendiente', tipo: 'danger', leido: false },
+  { name: 'Inicio', path: '/', icon: Home },
+  { name: 'Asistencias', path: '/asistencias', icon: CalendarCheck },
+  { name: 'Nueva Inscripción', path: '/nueva-inscripcion', icon: UserPlus },
+  { name: 'Suscripciones', path: '/suscripciones', icon: CreditCard },
+  { name: 'Calendario', path: '/calendario', icon: CalendarDays },
+  { name: 'Reportes', path: '/reportes', icon: BarChart3 },
 ]
 
 function formatDateTime(date) {
@@ -27,12 +21,15 @@ function formatDateTime(date) {
   return `${day} ${month} ${year} • ${time}`
 }
 
-export default function DashboardLayout({ children, vistaActual, setVistaActual }) {
+export default function DashboardLayout({ children }) {
+  const location = useLocation()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showNotifications, setShowNotifications] = useState(false)
-  const [notificaciones, setNotificaciones] = useState(alertasIniciales)
+  const [notificaciones, setNotificaciones] = useState([])
   const dropdownRef = useRef(null)
-  const activeLabel = menuItems.find((i) => i.id === vistaActual)?.name
+
+  const activeItem = menuItems.find((i) => i.path === location.pathname)
+  const isHome = location.pathname === '/'
 
   const noLeidas = notificaciones.filter((n) => !n.leido).length
 
@@ -69,28 +66,29 @@ export default function DashboardLayout({ children, vistaActual, setVistaActual 
         <nav className="flex-1 px-4">
           <ul className="space-y-1">
             {menuItems.map((item) => (
-              <li key={item.id}>
-                <button
-                  onClick={() => setVistaActual(item.id)}
+              <li key={item.path}>
+                <Link
+                  to={item.path}
                   className={`w-full text-left py-2.5 px-4 rounded-2xl text-sm transition-all flex items-center gap-3 ${
-                    vistaActual === item.id
+                    location.pathname === item.path
                       ? 'bg-red-50 text-red-600 font-semibold'
                       : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
                   }`}
                 >
                   <item.icon size={18} />
                   {item.name}
-                </button>
+                </Link>
               </li>
             ))}
           </ul>
         </nav>
+
       </aside>
 
       <div className="flex-1 flex flex-col overflow-hidden p-6 gap-6">
         <header className="bg-white rounded-2xl shadow-sm px-8 py-5 flex items-center justify-between">
           <h2 className="text-slate-800 text-lg font-semibold">
-            Hola, {activeLabel}
+            {isHome ? 'Panel Principal' : activeItem?.name || 'Panel Principal'}
           </h2>
 
           <div className="flex items-center gap-5">
@@ -164,14 +162,14 @@ export default function DashboardLayout({ children, vistaActual, setVistaActual 
         </main>
       </div>
 
-      {vistaActual !== 'inicio' && (
-        <button
-          onClick={() => setVistaActual('inicio')}
+      {!isHome && (
+        <Link
+          to="/"
           className="fixed bottom-8 right-8 z-50 flex items-center gap-2 bg-red-600 text-white px-5 py-3 rounded-full font-medium shadow-lg shadow-red-600/20 hover:-translate-y-1 hover:shadow-xl hover:bg-red-700 transition-all duration-300"
         >
           <Home size={18} />
           Inicio
-        </button>
+        </Link>
       )}
     </div>
   )

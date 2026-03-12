@@ -1,62 +1,54 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Search } from 'lucide-react'
-
-const mockData = [
-  {
-    miembro: 'Carlos López',
-    plan: 'Mensual Full',
-    inicio: '01/02/2026',
-    fin: '01/03/2026',
-    estado: 'activa',
-  },
-  {
-    miembro: 'María González',
-    plan: 'Trimestral',
-    inicio: '15/12/2025',
-    fin: '15/03/2026',
-    estado: 'proxima',
-  },
-  {
-    miembro: 'Juan Pérez',
-    plan: 'Mensual Básico',
-    inicio: '01/01/2026',
-    fin: '01/02/2026',
-    estado: 'vencida',
-  },
-]
+import { useGym } from '../context/GymContext'
 
 const filtros = [
   { id: 'todas', label: 'Todas', color: 'bg-slate-100 text-slate-600', active: 'bg-slate-600 text-white' },
-  { id: 'activa', label: 'Activas', color: 'bg-emerald-50 text-emerald-600', active: 'bg-emerald-500 text-white' },
-  { id: 'proxima', label: 'Próximas a Vencer', color: 'bg-amber-50 text-amber-600', active: 'bg-amber-500 text-white' },
-  { id: 'vencida', label: 'Vencidas', color: 'bg-red-50 text-red-600', active: 'bg-red-500 text-white' },
+  { id: 'activo', label: 'Activas', color: 'bg-emerald-50 text-emerald-600', active: 'bg-emerald-500 text-white' },
+  { id: 'pase_activo', label: 'Pases Activos', color: 'bg-blue-50 text-blue-600', active: 'bg-blue-500 text-white' },
+  { id: 'vencido', label: 'Vencidas', color: 'bg-red-50 text-red-600', active: 'bg-red-500 text-white' },
 ]
 
 const estadoBadge = {
-  activa: 'bg-emerald-50 text-emerald-600',
-  proxima: 'bg-amber-50 text-amber-600',
-  vencida: 'bg-red-50 text-red-600',
+  activo: 'bg-emerald-50 text-emerald-600',
+  pase_activo: 'bg-blue-50 text-blue-600',
+  vencido: 'bg-red-50 text-red-600',
 }
 
 const estadoLabel = {
-  activa: 'Activa',
-  proxima: 'Próxima a vencer',
-  vencida: 'Vencida',
+  activo: 'Activa',
+  pase_activo: 'Pase Activo',
+  vencido: 'Vencida',
 }
 
 export default function SuscripcionesView() {
+  const { miembros } = useGym()
+  const navigate = useNavigate()
   const [filtroActual, setFiltroActual] = useState('todas')
   const [busqueda, setBusqueda] = useState('')
 
-  const datosFiltrados = mockData.filter((item) => {
+  const datosFiltrados = miembros.filter((item) => {
     const coincideFiltro = filtroActual === 'todas' || item.estado === filtroActual
-    const coincideBusqueda = item.miembro.toLowerCase().includes(busqueda.toLowerCase())
+    const query = busqueda.toLowerCase()
+    const coincideBusqueda = item.nombre.toLowerCase().includes(query) || item.dni.includes(query)
     return coincideFiltro && coincideBusqueda
   })
 
+  const totalActivos = miembros.filter(m => m.estado === 'activo').length
+  const totalPases = miembros.filter(m => m.estado === 'pase_activo').length
+  const totalVencidos = miembros.filter(m => m.estado === 'vencido').length
+
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-6">
-      <h2 className="text-2xl font-bold text-slate-800">Gestión de Suscripciones</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-800">Gestion de Suscripciones</h2>
+        <div className="flex gap-3">
+          <span className="bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-lg">{totalActivos} Activas</span>
+          <span className="bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-lg">{totalPases} Pases</span>
+          <span className="bg-red-50 text-red-700 text-xs font-bold px-3 py-1.5 rounded-lg">{totalVencidos} Vencidas</span>
+        </div>
+      </div>
 
       <div className="relative">
         <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
@@ -64,7 +56,7 @@ export default function SuscripcionesView() {
           type="text"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Buscar por nombre de miembro..."
+          placeholder="Buscar por nombre o DNI..."
           className="w-full bg-white rounded-2xl py-3.5 pl-14 pr-6 text-sm text-slate-700 placeholder:text-slate-400 border border-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-300 transition-all"
         />
       </div>
@@ -88,17 +80,18 @@ export default function SuscripcionesView() {
           <thead>
             <tr className="border-b border-slate-100">
               <th className="text-left px-6 py-4 text-slate-500 font-medium">Miembro</th>
+              <th className="text-left px-6 py-4 text-slate-500 font-medium">DNI</th>
               <th className="text-left px-6 py-4 text-slate-500 font-medium">Plan</th>
               <th className="text-left px-6 py-4 text-slate-500 font-medium">Inicio</th>
               <th className="text-left px-6 py-4 text-slate-500 font-medium">Fin</th>
               <th className="text-left px-6 py-4 text-slate-500 font-medium">Estado</th>
-              <th className="text-left px-6 py-4 text-slate-500 font-medium">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {datosFiltrados.map((item, index) => (
-              <tr key={index} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-4 text-slate-800 font-medium">{item.miembro}</td>
+            {datosFiltrados.map((item) => (
+              <tr key={item.id} onClick={() => navigate(`/miembro/${item.id}`)} className="border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer">
+                <td className="px-6 py-4 text-slate-800 font-medium">{item.nombre}</td>
+                <td className="px-6 py-4 text-slate-600">{item.dni}</td>
                 <td className="px-6 py-4 text-slate-600">{item.plan}</td>
                 <td className="px-6 py-4 text-slate-600">{item.inicio}</td>
                 <td className="px-6 py-4 text-slate-600">{item.fin}</td>
@@ -106,11 +99,6 @@ export default function SuscripcionesView() {
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${estadoBadge[item.estado]}`}>
                     {estadoLabel[item.estado]}
                   </span>
-                </td>
-                <td className="px-6 py-4">
-                  <button className="text-sm text-red-500 hover:text-red-700 font-medium transition-colors">
-                    Renovar
-                  </button>
                 </td>
               </tr>
             ))}

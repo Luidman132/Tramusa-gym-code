@@ -1,0 +1,99 @@
+import { useState } from 'react'
+import { X } from 'lucide-react'
+import { handleMontoInput, formatMontoBlur, parseMonto } from '../../utils/helpers'
+import { inputClasses, inputErrorClasses } from '../../utils/constants'
+import { useToast } from '../../context/ToastContext'
+
+export default function ModalPaseTemporal({ cliente, onProcesar, onCerrar }) {
+  const { mostrarToast } = useToast()
+  const [diasPase, setDiasPase] = useState(1)
+  const [monto, setMonto] = useState('')
+  const [errorMonto, setErrorMonto] = useState(false)
+
+  function handleProcesar(registrarIngreso) {
+    if (!monto || parseMonto(monto) <= 0) {
+      setErrorMonto(true)
+      mostrarToast('Ingresa el monto del pase', 'error')
+      return
+    }
+    onProcesar(diasPase, monto, registrarIngreso)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="bg-blue-50 p-6 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-blue-800">Vender Pase Temporal</h3>
+            <p className="text-sm text-blue-600 mt-1">{cliente.nombre}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onCerrar}
+            className="p-2 rounded-full hover:bg-blue-100 text-blue-400 hover:text-blue-600 transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-5">
+          <div>
+            <label className="block text-sm text-slate-600 mb-3">Cantidad de días</label>
+            <div className="flex gap-3">
+              {[1, 2, 3].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setDiasPase(n)}
+                  className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all ${
+                    diasPase === n
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {n} Día{n > 1 ? 's' : ''}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-slate-600 mb-1.5">Monto S/</label>
+            <input
+              type="text"
+              value={monto}
+              onChange={(e) => { const v = handleMontoInput(e.target.value); if (v !== null) setMonto(v); setErrorMonto(false) }}
+              onBlur={() => setMonto(formatMontoBlur(monto))}
+              placeholder="0.00"
+              className={errorMonto ? inputErrorClasses : inputClasses}
+            />
+          </div>
+        </div>
+
+        <div className="p-6 border-t border-slate-100 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onCerrar}
+            className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={() => handleProcesar(false)}
+            className="px-5 py-2.5 rounded-xl text-sm font-semibold text-emerald-600 bg-white border border-emerald-600 hover:bg-emerald-50 transition-colors"
+          >
+            Solo Cobrar
+          </button>
+          <button
+            type="button"
+            onClick={() => handleProcesar(true)}
+            className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-sm"
+          >
+            Cobrar y Registrar Ingreso
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
