@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, UserPlus, CreditCard, CalendarCheck, CalendarDays, BarChart3, Bell, Check, BellOff, Sun, Moon } from 'lucide-react'
+import { Home, UserPlus, CreditCard, CalendarCheck, CalendarDays, BarChart3, Bell, Check, BellOff, Sun, Moon, LogOut } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 
 const logoTramusa = '/logo_empresa_tramusa.svg'
@@ -22,7 +22,7 @@ function formatDateTime(date) {
   return `${day} ${month} ${year} • ${time}`
 }
 
-export default function DashboardLayout({ children }) {
+export default function DashboardLayout({ children, userName, onLogout }) {
   const { darkMode, toggleDarkMode } = useTheme()
   const location = useLocation()
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -85,6 +85,25 @@ export default function DashboardLayout({ children }) {
           </ul>
         </nav>
 
+        {/* User Info & Logout (Bottom of Sidebar) */}
+        <div className="p-4 mt-auto border-t border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3 px-2 mb-4">
+            <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center font-bold text-sm shrink-0">
+              {userName ? userName.charAt(0).toUpperCase() : 'U'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{userName || 'Administrador'}</p>
+            </div>
+          </div>
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 transition-all"
+          >
+            <LogOut size={18} />
+            Cerrar Sesión
+          </button>
+        </div>
+
       </aside>
 
       <div className="flex-1 flex flex-col overflow-hidden p-6 gap-6">
@@ -106,6 +125,7 @@ export default function DashboardLayout({ children }) {
               {darkMode ? <Sun size={20} className="animate-[themeSpin_0.5s_ease-out]" /> : <Moon size={20} className="animate-[themeSpin_0.5s_ease-out]" />}
             </button>
 
+            {/* Notificaciones */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setShowNotifications(!showNotifications)}

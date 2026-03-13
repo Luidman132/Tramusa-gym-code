@@ -8,7 +8,7 @@ import { useGym } from '../context/GymContext'
 
 export default function NuevaInscripcionView() {
   const { mostrarToast } = useToast()
-  const { agregarMiembro, agregarRegistro } = useGym()
+  const { miembros, agregarMiembro, agregarRegistro } = useGym()
   const navigate = useNavigate()
 
   const [nombre, setNombre] = useState('')
@@ -82,6 +82,16 @@ export default function NuevaInscripcionView() {
     if (!validar()) {
       mostrarToast('Completa los campos obligatorios correctamente', 'error')
       return
+    }
+
+    // Verificar si el documento ya está registrado
+    if (numDoc.trim()) {
+      const miembroExistente = miembros.find((m) => m.dni === numDoc.trim())
+      if (miembroExistente) {
+        mostrarToast(`Error: El documento ${numDoc} ya está registrado a nombre de ${miembroExistente.nombre}.`, 'error')
+        setErrores((prev) => ({ ...prev, numDoc: true }))
+        return
+      }
     }
 
     const nombrePlan = modoFecha === 'automatico' ? planes[plan].label.split(' ')[0] : 'Personalizado'
@@ -183,7 +193,7 @@ export default function NuevaInscripcionView() {
                   className={`flex-1 text-sm text-slate-700 dark:text-slate-200 py-2.5 px-4 placeholder:text-slate-400 focus:outline-none ${errores.numDoc ? 'bg-red-50 dark:bg-red-950' : 'bg-slate-50 dark:bg-slate-800'}`}
                 />
               </div>
-              {errores.numDoc && <p className="text-xs text-red-500 mt-1">{numDoc.trim() ? 'DNI debe tener 8 dígitos' : 'Campo obligatorio'}</p>}
+              {errores.numDoc && <p className="text-xs text-red-500 mt-1">{!numDoc.trim() ? 'Campo obligatorio' : miembros.some(m => m.dni === numDoc.trim()) ? 'Este documento ya está registrado' : 'DNI debe tener 8 dígitos'}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">N° de Celular <span className="text-red-400">*</span></label>
