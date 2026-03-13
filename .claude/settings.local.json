@@ -7,7 +7,8 @@
       "Bash(sudo chown:*)",
       "Bash(npx vite:*)",
       "Bash(wc -l \"/Users/luidman/Documents/Proyectos_Programador/PaginaWeb+DashBoard/Gymnasia Tramusa/tramusa-gym-code/src/components/RegistrarAsistenciaView.jsx\" \"/Users/luidman/Documents/Proyectos_Programador/PaginaWeb+DashBoard/Gymnasia Tramusa/tramusa-gym-code/src/components/NuevaInscripcionView.jsx\" \"/Users/luidman/Documents/Proyectos_Programador/PaginaWeb+DashBoard/Gymnasia Tramusa/tramusa-gym-code/src/components/asistencias/\"*.jsx \"/Users/luidman/Documents/Proyectos_Programador/PaginaWeb+DashBoard/Gymnasia Tramusa/tramusa-gym-code/src/utils/\"*.js)",
-      "Bash(cd \"/Users/luidman/Documents/Proyectos_Programador/PaginaWeb+DashBoard/Gymnasia Tramusa/tramusa-gym-code\" && rm -f src/lib/supabase.js src/context/AuthContext.jsx src/components/LoginPage.jsx .env.example && rmdir src/lib 2>/dev/null; npm uninstall @supabase/supabase-js)"
+      "Bash(cd \"/Users/luidman/Documents/Proyectos_Programador/PaginaWeb+DashBoard/Gymnasia Tramusa/tramusa-gym-code\" && rm -f src/lib/supabase.js src/context/AuthContext.jsx src/components/LoginPage.jsx .env.example && rmdir src/lib 2>/dev/null; npm uninstall @supabase/supabase-js)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }

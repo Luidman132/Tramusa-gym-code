@@ -5,12 +5,6 @@ import { useGym } from '../context/GymContext'
 import { useToast } from '../context/ToastContext'
 import { formatHora } from '../utils/helpers'
 
-const estadoBadge = {
-  activo: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  pase_activo: 'bg-blue-100 text-blue-700 border-blue-200',
-  vencido: 'bg-red-100 text-red-700 border-red-200',
-}
-
 const estadoTexto = {
   activo: 'Activo',
   pase_activo: 'Pase Activo',
@@ -129,11 +123,11 @@ export default function MiembroPerfilView() {
 
           {/* Estadisticas rapidas */}
           <div className="flex sm:flex-col gap-3 shrink-0">
-            <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-xl p-3 text-center min-w-[80px]">
+            <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-xl p-3 text-center min-w-20">
               <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">{asistencias.length}</p>
               <p className="text-[10px] text-emerald-600 dark:text-emerald-500 font-medium">asistencias</p>
             </div>
-            <div className="bg-violet-50 dark:bg-violet-500/10 rounded-xl p-3 text-center min-w-[80px]">
+            <div className="bg-violet-50 dark:bg-violet-500/10 rounded-xl p-3 text-center min-w-20">
               <p className="text-xl font-bold text-violet-700 dark:text-violet-400">S/{totalPagado.toFixed(0)}</p>
               <p className="text-[10px] text-violet-600 dark:text-violet-500 font-medium">pagado</p>
             </div>

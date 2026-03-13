@@ -15,7 +15,7 @@ export default function LoginView({ onLogin }) {
     // Simulacion de petición al servidor (Credenciales Temporales)
     setTimeout(() => {
       if (email === 'admin@tramusa.com' && password === 'admin123') {
-        onLogin({ email: 'admin@tramusa.com', nombre: 'Dima' })
+        onLogin({ email: 'admin@tramusa.com', nombre: 'Dina' })
         mostrarToast('¡Bienvenido al sistema!')
       } else {
         mostrarToast('Credenciales incorrectas', 'error')

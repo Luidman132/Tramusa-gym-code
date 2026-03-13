@@ -58,6 +58,16 @@ export default function ReportesView() {
   const totalCobros = historialPeriodo.filter(h => h.tipo === 'cobro' || h.tipo === 'cobro_asistencia').length
   const promedioAsistencias = diasPeriodo > 0 ? (totalAsistencias / diasPeriodo).toFixed(1) : 0
 
+  // Ocupación: % de miembros activos que asistieron al menos 1 vez en el periodo
+  const miembrosActivos = miembros.filter(m => m.estado === 'activo' || m.estado === 'pase_activo').length
+  const miembrosQueAsistieron = new Set(
+    historialPeriodo
+      .filter(h => h.tipo === 'asistencia' || h.tipo === 'cobro_asistencia')
+      .map(h => h.miembroId)
+      .filter(Boolean)
+  ).size
+  const porcentajeOcupacion = miembrosActivos > 0 ? Math.round((miembrosQueAsistieron / miembrosActivos) * 100) : 0
+
   // Maximos para escala de graficos
   const maxAsistencias = Math.max(...datosPorDia.map(d => d.asistencias), 1)
   const maxIngresos = Math.max(...datosPorDia.map(d => d.ingresos), 1)
@@ -159,10 +169,10 @@ export default function ReportesView() {
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm dark:shadow-none border border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2.5 bg-blue-50 dark:bg-blue-500/10 rounded-xl"><TrendingUp size={20} className="text-blue-600 dark:text-blue-400" /></div>
-            <span className="text-sm text-slate-500 dark:text-slate-400">Promedio diario</span>
+            <span className="text-sm text-slate-500 dark:text-slate-400">Ocupación</span>
           </div>
-          <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{promedioAsistencias}</p>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">asistencias por dia</p>
+          <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{porcentajeOcupacion}%</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{miembrosQueAsistieron} de {miembrosActivos} miembros vinieron</p>
         </div>
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm dark:shadow-none border border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3 mb-3">

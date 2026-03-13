@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Search, UserCircle, UserPlus, ArrowRight, CheckCircle, Pencil, Ticket } from 'lucide-react'
-import { formatHora, handleMontoInput, formatMontoBlur, parseMonto } from '../utils/helpers'
+import { formatHora, parseMonto } from '../utils/helpers'
 import { inputClasses, inputErrorClasses, estilosEstado } from '../utils/constants'
 import { useToast } from '../context/ToastContext'
 import { useGym } from '../context/GymContext'
@@ -26,6 +26,24 @@ export default function RegistrarAsistenciaView() {
   const [celularVisita, setCelularVisita] = useState('')
   const [correoVisita, setCorreoVisita] = useState('')
   const [montoVisita, setMontoVisita] = useState('')
+  const [montoVisitaDisplay, setMontoVisitaDisplay] = useState('')
+
+  function handleMontoVisitaChange(e) {
+    const raw = e.target.value.replace(/[^0-9]/g, '')
+    if (!raw) {
+      setMontoVisita('')
+      setMontoVisitaDisplay('')
+      limpiarErrorVisita('monto')
+      return
+    }
+    const numero = parseInt(raw, 10)
+    const valorReal = (numero / 100).toFixed(2)
+    setMontoVisita(valorReal)
+    const partes = valorReal.split('.')
+    const entero = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    setMontoVisitaDisplay(`S/ ${entero}.${partes[1]}`)
+    limpiarErrorVisita('monto')
+  }
 
   const [erroresVisita, setErroresVisita] = useState({})
 
@@ -102,6 +120,7 @@ export default function RegistrarAsistenciaView() {
     setCelularVisita('')
     setCorreoVisita('')
     setMontoVisita('')
+    setMontoVisitaDisplay('')
     setErroresVisita({})
     setMostrandoPaseRapido(false)
   }
@@ -114,17 +133,23 @@ export default function RegistrarAsistenciaView() {
     const errs = {}
     if (!nombresVisita.trim()) errs.nombres = true
     if (!apellidosVisita.trim()) errs.apellidos = true
-    if (!montoVisita || parseMonto(montoVisita) <= 0) errs.monto = true
+    if (!montoVisita || parseFloat(montoVisita) <= 0) errs.monto = true
     setErroresVisita(errs)
     if (Object.keys(errs).length > 0) {
       mostrarToast('Completa nombre, apellido y monto', 'error')
       return
     }
-    const monto = parseMonto(montoVisita)
+    const monto = parseFloat(montoVisita)
     agregarRegistro({
       tipo: 'cobro_asistencia',
       titulo: `Visita Libre: ${nombresVisita.trim()} ${apellidosVisita.trim()}`,
       detalle: `Pago: S/ ${monto.toFixed(2)}`,
+      visitaLibre: true,
+      nombres: nombresVisita.trim(),
+      apellidos: apellidosVisita.trim(),
+      dni: dniVisita,
+      celular: celularVisita,
+      correo: correoVisita,
     })
     mostrarToast(`Visita libre registrada: ${nombresVisita.trim()} ${apellidosVisita.trim()}`)
     resetFormularioVisita()
@@ -155,7 +180,7 @@ export default function RegistrarAsistenciaView() {
 
   function procesarVentaPase(diasPase, montoRaw, registrarIngresoAhora) {
     if (!clienteSeleccionado) return
-    const monto = parseMonto(montoRaw)
+    const monto = parseFloat(montoRaw) || 0
     const diasRestantesFinal = registrarIngresoAhora ? diasPase - 1 : diasPase
     const nuevoEstado = (registrarIngresoAhora && diasRestantesFinal <= 0) ? 'vencido' : 'pase_activo'
 
@@ -188,8 +213,8 @@ export default function RegistrarAsistenciaView() {
     setMostrarModalEditarCliente(false)
   }
 
-  function guardarEdicionHistorial(id, titulo, detalle) {
-    actualizarRegistro(id, { titulo, detalle })
+  function guardarEdicionHistorial(id, cambios) {
+    actualizarRegistro(id, cambios)
     mostrarToast('Registro actualizado')
     setRegistroAEditar(null)
   }
@@ -275,19 +300,65 @@ export default function RegistrarAsistenciaView() {
               <ArrowRight size={20} className="text-slate-300 dark:text-slate-600 group-hover:text-red-500 dark:group-hover:text-red-400 group-hover:translate-x-1 transition-all shrink-0" />
             </button>
           ) : (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-4">
-              <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Registrar Visita Libre</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <input type="text" value={nombresVisita} onChange={(e) => { setNombresVisita(e.target.value); limpiarErrorVisita('nombres') }} placeholder="Nombre(s) *" className={erroresVisita.nombres ? inputErrorClasses : inputClasses} />
-                <input type="text" value={apellidosVisita} onChange={(e) => { setApellidosVisita(e.target.value); limpiarErrorVisita('apellidos') }} placeholder="Apellido(s) *" className={erroresVisita.apellidos ? inputErrorClasses : inputClasses} />
-                <input type="text" value={dniVisita} onChange={(e) => setDniVisita(e.target.value.replace(/\D/g, ''))} maxLength={8} placeholder="DNI" className={inputClasses} />
-                <input type="tel" value={celularVisita} onChange={(e) => setCelularVisita(e.target.value.replace(/\D/g, ''))} maxLength={9} placeholder="N de Celular" className={inputClasses} />
-                <input type="email" value={correoVisita} onChange={(e) => setCorreoVisita(e.target.value)} placeholder="Correo Electronico" className={inputClasses} />
-                <input type="text" value={montoVisita} onChange={(e) => { const v = handleMontoInput(e.target.value); if (v !== null) setMontoVisita(v); limpiarErrorVisita('monto') }} onBlur={() => setMontoVisita(formatMontoBlur(montoVisita))} placeholder="Monto S/ *" className={erroresVisita.monto ? inputErrorClasses : inputClasses} />
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm dark:shadow-none">
+              {/* Header */}
+              <div className="bg-red-50 dark:bg-red-500/10 px-6 py-4 border-b border-red-100 dark:border-red-500/20 flex items-center gap-3">
+                <div className="p-2.5 bg-red-100 dark:bg-red-500/20 rounded-xl">
+                  <UserPlus size={20} className="text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-red-800 dark:text-red-300">Registrar Visita Libre</h4>
+                  <p className="text-xs text-red-600/70 dark:text-red-400/70 mt-0.5">Persona no registrada en el sistema</p>
+                </div>
               </div>
-              <div className="flex justify-end items-center gap-3 pt-2">
-                <button type="button" onClick={resetFormularioVisita} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 px-3 py-3 text-sm font-medium transition-colors">Cancelar</button>
-                <button type="button" onClick={registrarVisitaLibre} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-3 px-6 font-semibold transition-colors">Registrar Pago y Acceso</button>
+
+              <div className="p-6 space-y-5">
+                {/* Fila 1: Nombre y Apellido */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Nombre(s) <span className="text-red-400">*</span></label>
+                    <input type="text" value={nombresVisita} onChange={(e) => { setNombresVisita(e.target.value); limpiarErrorVisita('nombres') }} placeholder="Ej: Juan Carlos" className={erroresVisita.nombres ? inputErrorClasses : inputClasses} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Apellido(s) <span className="text-red-400">*</span></label>
+                    <input type="text" value={apellidosVisita} onChange={(e) => { setApellidosVisita(e.target.value); limpiarErrorVisita('apellidos') }} placeholder="Ej: Perez Lopez" className={erroresVisita.apellidos ? inputErrorClasses : inputClasses} />
+                  </div>
+                </div>
+
+                {/* Fila 2: DNI y Celular */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">DNI</label>
+                    <input type="text" value={dniVisita} onChange={(e) => setDniVisita(e.target.value.replace(/\D/g, ''))} maxLength={8} placeholder="12345678" inputMode="numeric" className={inputClasses} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Celular</label>
+                    <input type="tel" value={celularVisita} onChange={(e) => setCelularVisita(e.target.value.replace(/\D/g, ''))} maxLength={9} placeholder="987654321" inputMode="numeric" className={inputClasses} />
+                  </div>
+                </div>
+
+                {/* Fila 3: Correo y Monto */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Correo</label>
+                    <input type="email" value={correoVisita} onChange={(e) => setCorreoVisita(e.target.value)} placeholder="correo@ejemplo.com" className={inputClasses} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Monto <span className="text-red-400">*</span></label>
+                    <input type="text" inputMode="numeric" value={montoVisitaDisplay} onChange={handleMontoVisitaChange} placeholder="S/ 0.00" className={erroresVisita.monto ? inputErrorClasses : inputClasses} />
+                  </div>
+                </div>
+
+                {/* Botones */}
+                <div className="flex justify-end items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <button type="button" onClick={resetFormularioVisita} className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    Cancelar
+                  </button>
+                  <button type="button" onClick={registrarVisitaLibre} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2.5 px-6 font-semibold text-sm shadow-sm hover:shadow transition-all">
+                    <CheckCircle size={16} />
+                    Registrar Pago y Acceso
+                  </button>
+                </div>
               </div>
             </div>
           )}

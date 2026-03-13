@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Users, CalendarCheck, AlertTriangle, DollarSign, UserPlus, ClipboardCheck, CreditCard, Search, ArrowRight, Clock } from 'lucide-react'
 import { useGym } from '../context/GymContext'
 import { formatHora } from '../utils/helpers'
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 
 function parseFechaDDMMYYYY(fechaStr) {
   const [d, m, y] = fechaStr.split('/')
@@ -23,8 +24,8 @@ const quickActions = [
   { label: 'Suscripciones', icon: CreditCard, accent: 'text-blue-600 dark:text-blue-400', iconBg: 'bg-blue-50 dark:bg-blue-500/10', path: '/suscripciones' },
 ]
 
-export default function DashboardHome({ userName = 'Dima' }) {
-  const { miembros, historial } = useGym()
+export default function DashboardHome({ userName = 'Dina' }) {
+  const { miembros, historial, getPeakHours, getTopAttendees } = useGym()
   const navigate = useNavigate()
   const [busqueda, setBusqueda] = useState('')
   const [resultados, setResultados] = useState([])
@@ -271,6 +272,94 @@ export default function DashboardHome({ userName = 'Dima' }) {
             </ul>
           )}
         </div>
+      </div>
+
+      {/* Analisis Predictivo - Simplificado para Dina */}
+      <div>
+        <h3 className="text-xl font-bold mb-6 flex items-center gap-3 text-slate-800 dark:text-slate-100">
+          📊 ¿Qué dice el sistema hoy?
+        </h3>
+
+        {historial.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm dark:shadow-none border border-slate-100 dark:border-slate-800 p-12 text-center">
+            <CalendarCheck size={40} className="mx-auto mb-4 text-slate-300 dark:text-slate-600" />
+            <p className="text-lg text-slate-500 dark:text-slate-400">
+              Registra algunas asistencias para ver qué horarios están más llenos y quién necesita renovar.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Card 1 – Horarios más ocupados */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm dark:shadow-none border border-slate-100 dark:border-slate-800 p-6">
+              <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-5">Horarios más ocupados</h4>
+              {(() => {
+                const peakData = getPeakHours()
+                  .filter(h => h.hour >= 6 && h.hour <= 22)
+                  .slice(0, 5)
+                  .map(h => ({ ...h, label: `${h.hour}:00` }))
+
+                return peakData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={peakData} margin={{ top: 5, right: 10, left: -15, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="label" tick={{ fontSize: 14, fontWeight: 600, fill: '#334155' }} />
+                      <YAxis tick={{ fontSize: 13, fill: '#94a3b8' }} allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '15px', fontWeight: 500 }}
+                        formatter={(value) => [`${value} personas`, 'Asistieron']}
+                        labelFormatter={(label) => `A las ${label}`}
+                      />
+                      <Bar dataKey="count" fill="#10b981" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-slate-400 dark:text-slate-500 text-base text-center py-10">Aún no hay datos de horarios</p>
+                )
+              })()}
+            </div>
+
+            {/* Card 2 – Miembros que más asisten */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm dark:shadow-none border border-slate-100 dark:border-slate-800 p-6">
+              <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-5">Miembros que más asisten</h4>
+              {(() => {
+                const topMembers = getTopAttendees()
+                const hayDatos = topMembers.length > 0 && topMembers[0].asistencias > 0
+
+                return hayDatos ? (
+                  <ul className="space-y-3">
+                    {topMembers.map((m, i) => (
+                      <li
+                        key={m.id}
+                        onClick={() => navigate(`/miembro/${m.id}`)}
+                        className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <span className="text-2xl font-bold text-slate-300 dark:text-slate-600 w-8 text-center shrink-0">
+                          {i === 0 ? '🏆' : i + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-base font-bold text-slate-800 dark:text-slate-100 truncate">{m.nombre}</p>
+                        </div>
+                        <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                          {m.asistencias}
+                          <span className="text-sm font-medium text-slate-400 dark:text-slate-500 ml-1">
+                            {m.asistencias === 1 ? 'vez' : 'veces'}
+                          </span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-10">
+                    <Users size={36} className="text-slate-300 dark:text-slate-600 mb-3" />
+                    <p className="text-base text-slate-500 dark:text-slate-400 text-center">
+                      Registra asistencias para ver quiénes son los más fieles ❤️
+                    </p>
+                  </div>
+                )
+              })()}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

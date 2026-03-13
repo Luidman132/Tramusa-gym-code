@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
-import { handleMontoInput, formatMontoBlur, parseMonto } from '../../utils/helpers'
 import { inputClasses, inputErrorClasses } from '../../utils/constants'
 import { useToast } from '../../context/ToastContext'
 
@@ -8,10 +7,28 @@ export default function ModalPaseTemporal({ cliente, onProcesar, onCerrar }) {
   const { mostrarToast } = useToast()
   const [diasPase, setDiasPase] = useState(1)
   const [monto, setMonto] = useState('')
+  const [montoDisplay, setMontoDisplay] = useState('')
   const [errorMonto, setErrorMonto] = useState(false)
 
+  function handleMontoChange(e) {
+    const raw = e.target.value.replace(/[^0-9]/g, '')
+    if (!raw) {
+      setMonto('')
+      setMontoDisplay('')
+      setErrorMonto(false)
+      return
+    }
+    const numero = parseInt(raw, 10)
+    const valorReal = (numero / 100).toFixed(2)
+    setMonto(valorReal)
+    const partes = valorReal.split('.')
+    const entero = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    setMontoDisplay(`S/ ${entero}.${partes[1]}`)
+    setErrorMonto(false)
+  }
+
   function handleProcesar(registrarIngreso) {
-    if (!monto || parseMonto(monto) <= 0) {
+    if (!monto || parseFloat(monto) <= 0) {
       setErrorMonto(true)
       mostrarToast('Ingresa el monto del pase', 'error')
       return
@@ -61,10 +78,10 @@ export default function ModalPaseTemporal({ cliente, onProcesar, onCerrar }) {
             <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1.5">Monto S/</label>
             <input
               type="text"
-              value={monto}
-              onChange={(e) => { const v = handleMontoInput(e.target.value); if (v !== null) setMonto(v); setErrorMonto(false) }}
-              onBlur={() => setMonto(formatMontoBlur(monto))}
-              placeholder="0.00"
+              inputMode="numeric"
+              value={montoDisplay}
+              onChange={handleMontoChange}
+              placeholder="S/ 0.00"
               className={errorMonto ? inputErrorClasses : inputClasses}
             />
           </div>

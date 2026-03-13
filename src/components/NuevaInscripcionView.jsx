@@ -24,6 +24,28 @@ export default function NuevaInscripcionView() {
   const [fechaFin, setFechaFin] = useState('')
   const [turno, setTurno] = useState('')
   const [monto, setMonto] = useState('')
+  const [montoDisplay, setMontoDisplay] = useState('')
+
+  function handleMontoChange(e) {
+    // Solo permite digitos y un punto decimal
+    let raw = e.target.value.replace(/[^0-9]/g, '')
+    if (!raw) {
+      setMonto('')
+      setMontoDisplay('')
+      limpiarError('monto')
+      return
+    }
+    // Guarda el valor numerico real (en centimos)
+    const numero = parseInt(raw, 10)
+    // Valor real en soles
+    const valorReal = (numero / 100).toFixed(2)
+    setMonto(valorReal)
+    // Formato display: S/ 2,300.00
+    const partes = valorReal.split('.')
+    const entero = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    setMontoDisplay(`S/ ${entero}.${partes[1]}`)
+    limpiarError('monto')
+  }
   const [otros, setOtros] = useState('')
   const [recibo, setRecibo] = useState('')
   const [boleta, setBoleta] = useState('')
@@ -323,12 +345,11 @@ export default function NuevaInscripcionView() {
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Monto (S/) <span className="text-red-400">*</span></label>
               <input
-                type="number"
-                value={monto}
-                onChange={(e) => { setMonto(e.target.value); limpiarError('monto') }}
-                placeholder="0.00"
-                step="0.01"
-                min="0"
+                type="text"
+                inputMode="numeric"
+                value={montoDisplay}
+                onChange={handleMontoChange}
+                placeholder="S/ 0.00"
                 className={getClase('monto')}
               />
               {errores.monto && <p className="text-xs text-red-500 mt-1">Ingresa el monto</p>}
