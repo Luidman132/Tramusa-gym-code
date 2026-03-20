@@ -7,11 +7,9 @@ export default function ModalPaseTemporal({ cliente, onProcesar, onCerrar }) {
   const { mostrarToast } = useToast()
   const [diasPase, setDiasPase] = useState(1)
   const [monto, setMonto] = useState('')
-  const [errorMonto, setErrorMonto] = useState(false)
 
   function handleProcesar(registrarIngreso) {
     if (!monto || parseFloat(monto) <= 0) {
-      setErrorMonto(true)
       mostrarToast('Ingresa el monto del pase', 'error')
       return
     }
@@ -58,7 +56,7 @@ export default function ModalPaseTemporal({ cliente, onProcesar, onCerrar }) {
 
           <div>
             <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1.5">Monto</label>
-            <CurrencyInput value={monto} onChange={(v) => { setMonto(v); setErrorMonto(false) }} />
+            <CurrencyInput value={monto} onChange={setMonto} />
           </div>
         </div>
 

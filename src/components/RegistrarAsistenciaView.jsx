@@ -160,11 +160,13 @@ export default function RegistrarAsistenciaView({ usuario, miembroPreSeleccionad
       plan: nombrePlanCorto,
       fin: fechaFinFormateada,
       diasRestantes: undefined,
+      turno: datos.turno || undefined,
     })
     agregarRegistro({
       tipo: 'cobro',
       titulo: `Renovacion: ${clienteSeleccionado.nombre}`,
       detalle: `Plan: ${datos.planLabel} - Pago: S/ ${monto.toFixed(2)}`,
+      recibo: datos.recibo || undefined,
     })
     mostrarToast(`Suscripcion renovada: ${clienteSeleccionado.nombre} - ${datos.planLabel}`)
     setMostrarModalRenovacion(false)

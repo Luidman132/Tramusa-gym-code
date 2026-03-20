@@ -142,6 +142,10 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
       contactoTelefono: contactoTelefono || undefined,
       turno: turno || undefined,
       codigoQR,
+      otros: otros || undefined,
+      recibo: recibo || undefined,
+      boleta: boleta || undefined,
+      deposito: deposito || undefined,
     })
 
     // Guardar datos para el modal de bienvenida QR (Paso 2)
@@ -152,6 +156,9 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
         tipo: 'cobro',
         titulo: `Inscripcion: ${nombre.trim()} ${apellido.trim()}`,
         detalle: `Plan: ${nombrePlan} - Pago: S/ ${parseFloat(monto).toFixed(2)}`,
+        recibo: recibo || undefined,
+        boleta: boleta || undefined,
+        deposito: deposito || undefined,
       })
     }
 

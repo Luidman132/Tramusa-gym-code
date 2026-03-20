@@ -29,59 +29,7 @@ const miembrosIniciales = [
 
 export function GymProvider({ children }) {
   const [miembros, setMiembros] = useState(miembrosIniciales)
-  const [historial, setHistorial] = useState(() => {
-    // === DATOS DE PRUEBA TEMPORALES ===
-    const nombres = miembrosIniciales.reduce((acc, m) => { acc[m.id] = m.nombre; return acc }, {})
-    const testData = [
-      // Bloque manana 8-11 (concentrado)
-      { dia: 1, hora: 8, miembroId: 1 },
-      { dia: 1, hora: 9, miembroId: 2 },
-      { dia: 1, hora: 9, miembroId: 3 },
-      { dia: 1, hora: 10, miembroId: 7 },
-      { dia: 2, hora: 8, miembroId: 6 },
-      { dia: 2, hora: 8, miembroId: 9 },
-      { dia: 2, hora: 9, miembroId: 12 },
-      { dia: 2, hora: 10, miembroId: 15 },
-      { dia: 2, hora: 10, miembroId: 17 },
-      { dia: 3, hora: 8, miembroId: 2 },
-      { dia: 3, hora: 9, miembroId: 3 },
-      { dia: 3, hora: 9, miembroId: 7 },
-      { dia: 3, hora: 11, miembroId: 13 },
-      { dia: 4, hora: 8, miembroId: 6 },
-      { dia: 4, hora: 10, miembroId: 19 },
-      { dia: 4, hora: 10, miembroId: 20 },
-      { dia: 5, hora: 9, miembroId: 2 },
-      { dia: 5, hora: 9, miembroId: 15 },
-      { dia: 5, hora: 11, miembroId: 17 },
-      // Bloque tarde 17-19 (concentrado)
-      { dia: 1, hora: 17, miembroId: 4 },
-      { dia: 1, hora: 18, miembroId: 5 },
-      { dia: 1, hora: 18, miembroId: 10 },
-      { dia: 2, hora: 17, miembroId: 8 },
-      { dia: 2, hora: 17, miembroId: 11 },
-      { dia: 2, hora: 19, miembroId: 14 },
-      { dia: 3, hora: 18, miembroId: 4 },
-      { dia: 3, hora: 18, miembroId: 16 },
-      { dia: 3, hora: 19, miembroId: 18 },
-      { dia: 4, hora: 17, miembroId: 8 },
-      { dia: 4, hora: 18, miembroId: 21 },
-      { dia: 5, hora: 17, miembroId: 22 },
-      // Horas sueltas (menos frecuentes)
-      { dia: 6, hora: 7, miembroId: 9 },
-      { dia: 7, hora: 14, miembroId: 12 },
-      { dia: 8, hora: 20, miembroId: 13 },
-      { dia: 10, hora: 21, miembroId: 19 },
-    ]
-    return testData.map((t, i) => ({
-      id: 1000 + i,
-      hora: new Date(2026, 2, t.dia, t.hora, Math.floor(Math.random() * 50), 0),
-      turno: t.hora < 14 ? 'Manana' : 'Tarde',
-      tipo: i % 4 === 0 ? 'cobro_asistencia' : 'asistencia',
-      titulo: `Asistencia - ${nombres[t.miembroId] || 'Miembro ' + t.miembroId}`,
-      detalle: `Entrada registrada: ${nombres[t.miembroId] || 'Miembro ' + t.miembroId}`,
-      miembroId: t.miembroId,
-    }))
-  })
+  const [historial, setHistorial] = useState([])
 
   function agregarMiembro(nuevoMiembro) {
     const id = miembros.length > 0 ? Math.max(...miembros.map(m => m.id)) + 1 : 1
@@ -112,105 +60,6 @@ export function GymProvider({ children }) {
     setHistorial(prev => prev.filter(h => h.id !== id))
   }
 
-  function getPeakHours() {
-    const asistencias = historial.filter(h => h.tipo === 'asistencia' || h.tipo === 'cobro_asistencia')
-    const total = asistencias.length
-    if (total === 0) return []
-
-    const conteo = {}
-    asistencias.forEach(h => {
-      const hour = new Date(h.hora).getHours()
-      conteo[hour] = (conteo[hour] || 0) + 1
-    })
-
-    const result = Object.entries(conteo)
-      .map(([hour, count]) => ({
-        hour: Number(hour),
-        count,
-        percentage: (count / total) * 100,
-      }))
-      .sort((a, b) => b.count - a.count)
-    console.log("=== TEST PREDICTIVO - PEAK HOURS ===", result)
-    return result
-  }
-
-  function getChurnRisk() {
-    const now = new Date()
-    const hace30Dias = new Date(now)
-    hace30Dias.setDate(hace30Dias.getDate() - 30)
-
-    const result = miembros.map(m => {
-      // Parsear fecha fin (dd/mm/yyyy)
-      const [d, mo, y] = m.fin.split('/')
-      const fechaFin = new Date(Number(y), Number(mo) - 1, Number(d))
-      const daysToExpire = Math.ceil((fechaFin - now) / (1000 * 60 * 60 * 24))
-
-      // Contar asistencias últimos 30 días
-      const attendanceCount = historial.filter(h =>
-        (h.tipo === 'asistencia' || h.tipo === 'cobro_asistencia') &&
-        h.detalle?.toLowerCase().includes(m.nombre.toLowerCase()) &&
-        new Date(h.hora) >= hace30Dias
-      ).length
-
-      // Calcular riskScore
-      let riskScore = 0
-      const reasons = []
-
-      if (daysToExpire < 7) {
-        riskScore += 40
-        reasons.push('Vence en menos de 7 días')
-      }
-      if (m.estado === 'vencido') {
-        riskScore += 30
-        reasons.push('Membresía vencida')
-      }
-      if (attendanceCount < 3) {
-        riskScore += 20
-        reasons.push('Baja asistencia (últimos 30 días)')
-      }
-      if (m.plan === 'Pase Dia' && (m.diasRestantes || 0) <= 1) {
-        riskScore += 10
-        reasons.push('Pase Día por agotarse')
-      }
-
-      const status = riskScore > 70 ? 'alto' : riskScore >= 40 ? 'medio' : 'bajo'
-
-      return {
-        id: m.id,
-        nombre: m.nombre,
-        dni: m.dni,
-        plan: m.plan,
-        fin: m.fin,
-        daysToExpire,
-        attendanceCount,
-        riskScore,
-        status,
-        reason: reasons.join('. '),
-      }
-    }).filter(m => m.riskScore > 40)
-      .sort((a, b) => b.riskScore - a.riskScore)
-    console.log("=== TEST PREDICTIVO - CHURN RISK ===", result)
-    return result
-  }
-
-  function getTopAttendees() {
-    const conteo = {}
-    historial.forEach(registro => {
-      if (registro.miembroId && (registro.tipo === 'asistencia' || registro.tipo === 'cobro_asistencia')) {
-        conteo[registro.miembroId] = (conteo[registro.miembroId] || 0) + 1
-      }
-    })
-
-    return miembros
-      .map(m => ({
-        id: m.id,
-        nombre: m.nombre,
-        asistencias: conteo[m.id] || 0,
-      }))
-      .sort((a, b) => b.asistencias - a.asistencias)
-      .slice(0, 5)
-  }
-
   return (
     <GymContext.Provider value={{
       miembros,
@@ -220,9 +69,6 @@ export function GymProvider({ children }) {
       agregarRegistro,
       actualizarRegistro,
       eliminarRegistro,
-      getPeakHours,
-      getChurnRisk,
-      getTopAttendees,
     }}>
       {children}
     </GymContext.Provider>

@@ -8,7 +8,15 @@
       "Bash(npx vite:*)",
       "Bash(wc -l \"/Users/luidman/Documents/Proyectos_Programador/PaginaWeb+DashBoard/Gymnasia Tramusa/tramusa-gym-code/src/components/RegistrarAsistenciaView.jsx\" \"/Users/luidman/Documents/Proyectos_Programador/PaginaWeb+DashBoard/Gymnasia Tramusa/tramusa-gym-code/src/components/NuevaInscripcionView.jsx\" \"/Users/luidman/Documents/Proyectos_Programador/PaginaWeb+DashBoard/Gymnasia Tramusa/tramusa-gym-code/src/components/asistencias/\"*.jsx \"/Users/luidman/Documents/Proyectos_Programador/PaginaWeb+DashBoard/Gymnasia Tramusa/tramusa-gym-code/src/utils/\"*.js)",
       "Bash(cd \"/Users/luidman/Documents/Proyectos_Programador/PaginaWeb+DashBoard/Gymnasia Tramusa/tramusa-gym-code\" && rm -f src/lib/supabase.js src/context/AuthContext.jsx src/components/LoginPage.jsx .env.example && rmdir src/lib 2>/dev/null; npm uninstall @supabase/supabase-js)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(grep -r \"CalendarioView\\\\|SuscripcionesView\" '/Users/luidman/Documents/Proyectos_Programador/PaginaWeb+DashBoard/Gymnasia Tramusa/tramusa-gym-code/src' --include=*.jsx)",
+      "Bash(grep:*)",
+      "Bash(file=\"/Users/luidman/Documents/Proyectos_Programador/PaginaWeb+DashBoard/Gymnasia Tramusa/tramusa-gym-code/src/components/ConfiguracionView.jsx\")",
+      "Read(//Users/luidman/Documents/Proyectos_Programador/PaginaWeb+DashBoard/Gymnasia Tramusa/tramusa-gym-code/**)",
+      "Bash(srcdir=\"/Users/luidman/Documents/Proyectos_Programador/PaginaWeb+DashBoard/Gymnasia Tramusa/tramusa-gym-code/src\" for func in getPeakHours getChurnRisk getTopAttendees)",
+      "Bash(do echo:*)",
+      "Bash(file=\"/Users/luidman/Documents/Proyectos_Programador/PaginaWeb+DashBoard/Gymnasia Tramusa/tramusa-gym-code/src/components/DashboardInicio.jsx\")",
+      "Bash(cd:*)"
     ]
   }
 }
