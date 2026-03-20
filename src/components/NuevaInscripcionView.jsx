@@ -8,6 +8,23 @@ import { useToast } from '../context/ToastContext'
 import { useGym } from '../context/GymContext'
 import { TicketWhatsApp } from './TicketWhatsApp'
 
+// Genera un código tipo: TRAMUSA-ANDR-X7B2
+function generarCodigoQRUnico(nombreCompleto) {
+  // VALIDACIÓN DE SEGURIDAD: Si no hay nombre, usa 'USER' por defecto
+  const nombreSeguro = nombreCompleto ? String(nombreCompleto) : 'USER'
+
+  const nombreLimpio = nombreSeguro.replace(/\s+/g, '')
+  const prefijo = nombreLimpio.substring(0, 4).toUpperCase().padEnd(4, 'X')
+
+  const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let sufijoAleatorio = ''
+  for (let i = 0; i < 4; i++) {
+    sufijoAleatorio += caracteres.charAt(Math.floor(Math.random() * caracteres.length))
+  }
+
+  return `TRAMUSA-${prefijo}-${sufijoAleatorio}`
+}
+
 export default function NuevaInscripcionView({ setVistaActiva }) {
   const { mostrarToast } = useToast()
   const { miembros, agregarMiembro, agregarRegistro } = useGym()
@@ -113,63 +130,69 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
       return
     }
 
-    // Verificar si el documento ya está registrado
-    if (numDoc.trim()) {
-      const miembroExistente = miembros.find((m) => m.dni === numDoc.trim())
-      if (miembroExistente) {
-        mostrarToast(`Error: El documento ${numDoc} ya está registrado a nombre de ${miembroExistente.nombre}.`, 'error')
-        setErrores((prev) => ({ ...prev, numDoc: true }))
-        return
+    try {
+      // Verificar si el documento ya está registrado
+      if (numDoc.trim()) {
+        const miembroExistente = miembros.find((m) => m.dni === numDoc.trim())
+        if (miembroExistente) {
+          mostrarToast(`Error: El documento ${numDoc} ya está registrado a nombre de ${miembroExistente.nombre}.`, 'error')
+          setErrores((prev) => ({ ...prev, numDoc: true }))
+          return
+        }
       }
-    }
 
-    const nombrePlan = modoFecha === 'automatico' ? planes[plan].label.split(' ')[0] : 'Personalizado'
-    const [yi, mi, di] = fechaInicio.split('-')
-    const [yf, mf, df] = fechaFin.split('-')
+      const nombrePlan = modoFecha === 'automatico' ? planes[plan].label.split(' ')[0] : 'Personalizado'
+      const [yi, mi, di] = fechaInicio.split('-')
+      const [yf, mf, df] = fechaFin.split('-')
 
-    const codigoQR = `TRAMUSA-${nombre.trim().replace(/\s+/g, '').substring(0, 4).toUpperCase()}-2026`
-    const nombreCompleto = `${nombre.trim()} ${apellido.trim()}`
+      // FIX: Declarar nombreCompleto ANTES de usarlo en generarCodigoQRUnico
+      const nombreCompleto = `${nombre.trim()} ${apellido.trim()}`
+      const codigoQR = generarCodigoQRUnico(nombreCompleto)
 
-    agregarMiembro({
-      dni: numDoc,
-      nombre: nombreCompleto,
-      celular,
-      plan: nombrePlan,
-      estado: 'activo',
-      inicio: `${di}/${mi}/${yi}`,
-      fin: `${df}/${mf}/${yf}`,
-      contactoNombre: contactoNombre || undefined,
-      contactoTelefono: contactoTelefono || undefined,
-      turno: turno || undefined,
-      codigoQR,
-      otros: otros || undefined,
-      recibo: recibo || undefined,
-      boleta: boleta || undefined,
-      deposito: deposito || undefined,
-    })
-
-    // Guardar datos para el modal de bienvenida QR (Paso 2)
-    setNuevoMiembroQR({ nombre: nombreCompleto, celular, codigoQR })
-
-    if (monto) {
-      agregarRegistro({
-        tipo: 'cobro',
-        titulo: `Inscripcion: ${nombre.trim()} ${apellido.trim()}`,
-        detalle: `Plan: ${nombrePlan} - Pago: S/ ${parseFloat(monto).toFixed(2)}`,
+      agregarMiembro({
+        dni: numDoc,
+        nombre: nombreCompleto,
+        celular,
+        plan: nombrePlan,
+        estado: 'activo',
+        inicio: `${di}/${mi}/${yi}`,
+        fin: `${df}/${mf}/${yf}`,
+        contactoNombre: contactoNombre || undefined,
+        contactoTelefono: contactoTelefono || undefined,
+        turno: turno || undefined,
+        codigoQR,
+        otros: otros || undefined,
         recibo: recibo || undefined,
         boleta: boleta || undefined,
         deposito: deposito || undefined,
       })
+
+      // Guardar datos para el modal de bienvenida QR (Paso 2)
+      setNuevoMiembroQR({ nombre: nombreCompleto, celular, codigoQR })
+
+      if (monto) {
+        agregarRegistro({
+          tipo: 'cobro',
+          titulo: `Inscripcion: ${nombre.trim()} ${apellido.trim()}`,
+          detalle: `Plan: ${nombrePlan} - Pago: S/ ${parseFloat(monto).toFixed(2)}`,
+          recibo: recibo || undefined,
+          boleta: boleta || undefined,
+          deposito: deposito || undefined,
+        })
+      }
+
+      mostrarToast(`${nombre.trim()} ${apellido.trim()} inscrito correctamente`)
+
+      setTicketExito({
+        cliente: `${nombre.trim()} ${apellido.trim()}`,
+        operacion: `Inscripción: ${nombrePlan}`,
+        monto: parseFloat(monto).toFixed(2),
+        fecha: new Date().toLocaleDateString('es-PE'),
+      })
+    } catch (error) {
+      console.error('🚨 ERROR CRÍTICO AL REGISTRAR:', error)
+      alert(`Ocurrió un error al guardar: ${error.message}. Revisa la consola (F12) para más detalles.`)
     }
-
-    mostrarToast(`${nombre.trim()} ${apellido.trim()} inscrito correctamente`)
-
-    setTicketExito({
-      cliente: `${nombre.trim()} ${apellido.trim()}`,
-      operacion: `Inscripción: ${nombrePlan}`,
-      monto: parseFloat(monto).toFixed(2),
-      fecha: new Date().toLocaleDateString('es-PE'),
-    })
   }
 
   // --- Funciones del flujo de bienvenida QR ---
