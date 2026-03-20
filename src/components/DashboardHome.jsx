@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
 import { Users, CalendarCheck, AlertTriangle, DollarSign, UserPlus, ClipboardCheck, CreditCard, Search, ArrowRight, Clock } from 'lucide-react'
 import { useGym } from '../context/GymContext'
 import { formatHora } from '../utils/helpers'
@@ -19,14 +18,13 @@ function diasHastaVencimiento(fechaFinStr) {
 }
 
 const quickActions = [
-  { label: 'Nueva Inscripcion', icon: UserPlus, accent: 'text-red-600 dark:text-red-400', iconBg: 'bg-red-50 dark:bg-red-500/10', path: '/nueva-inscripcion' },
-  { label: 'Registrar Asistencia', icon: ClipboardCheck, accent: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-50 dark:bg-emerald-500/10', path: '/asistencias' },
-  { label: 'Suscripciones', icon: CreditCard, accent: 'text-blue-600 dark:text-blue-400', iconBg: 'bg-blue-50 dark:bg-blue-500/10', path: '/suscripciones' },
+  { label: 'Nueva Inscripcion', icon: UserPlus, accent: 'text-red-600 dark:text-red-400', iconBg: 'bg-red-50 dark:bg-red-500/10', vista: 'Nueva Inscripcion' },
+  { label: 'Registrar Asistencia', icon: ClipboardCheck, accent: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-50 dark:bg-emerald-500/10', vista: 'Asistencias' },
+  { label: 'Suscripciones', icon: CreditCard, accent: 'text-blue-600 dark:text-blue-400', iconBg: 'bg-blue-50 dark:bg-blue-500/10', vista: 'Suscripciones' },
 ]
 
-export default function DashboardHome({ userName = 'Dina' }) {
+export default function DashboardHome({ userName = 'Dina', setVistaActiva, setMiembroPreSeleccionado }) {
   const { miembros, historial, getPeakHours, getTopAttendees } = useGym()
-  const navigate = useNavigate()
   const [busqueda, setBusqueda] = useState('')
   const [resultados, setResultados] = useState([])
 
@@ -82,10 +80,11 @@ export default function DashboardHome({ userName = 'Dina' }) {
     }
   }
 
-  function seleccionarMiembro(miembro) {
+  function seleccionarMiembro(m) {
+    setMiembroPreSeleccionado(m)
     setBusqueda('')
     setResultados([])
-    navigate(`/miembro/${miembro.id}`)
+    setVistaActiva('Asistencias')
   }
 
   const estadoBadge = {
@@ -191,16 +190,16 @@ export default function DashboardHome({ userName = 'Dina' }) {
       {/* Accesos rapidos */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {quickActions.map((action) => (
-          <Link
+          <button
             key={action.label}
-            to={action.path}
-            className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 flex items-center gap-4 shadow-sm dark:shadow-none hover:shadow-md dark:hover:bg-slate-800/50 hover:-translate-y-0.5 transition-all no-underline"
+            onClick={() => setVistaActiva(action.vista)}
+            className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 flex items-center gap-4 shadow-sm dark:shadow-none hover:shadow-md dark:hover:bg-slate-800/50 hover:-translate-y-0.5 transition-all cursor-pointer text-left"
           >
             <div className={`${action.iconBg} ${action.accent} p-3 rounded-xl shrink-0`}>
               <action.icon size={22} />
             </div>
             <span className={`text-base font-bold ${action.accent}`}>{action.label}</span>
-          </Link>
+          </button>
         ))}
       </div>
 
@@ -210,9 +209,9 @@ export default function DashboardHome({ userName = 'Dina' }) {
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm dark:shadow-none border border-slate-100 dark:border-slate-800 p-6">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">Vencen esta semana</h3>
-            <Link to="/suscripciones" className="text-xs text-red-500 hover:text-red-700 font-medium no-underline flex items-center gap-1">
+            <button onClick={() => setVistaActiva('Suscripciones')} className="text-xs text-red-500 hover:text-red-700 font-medium flex items-center gap-1 cursor-pointer">
               Ver todas <ArrowRight size={12} />
-            </Link>
+            </button>
           </div>
 
           {proximosAVencer.length === 0 ? (
@@ -223,7 +222,7 @@ export default function DashboardHome({ userName = 'Dina' }) {
           ) : (
             <ul className="space-y-3">
               {proximosAVencer.map(m => (
-                <li key={m.id} onClick={() => navigate(`/miembro/${m.id}`)} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                <li key={m.id} onClick={() => setVistaActiva('Suscripciones')} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{m.nombre}</p>
                     <p className="text-xs text-slate-400 dark:text-slate-500">{m.plan} - Vence: {m.fin}</p>
@@ -245,9 +244,9 @@ export default function DashboardHome({ userName = 'Dina' }) {
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm dark:shadow-none border border-slate-100 dark:border-slate-800 p-6">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">Actividad reciente</h3>
-            <Link to="/asistencias" className="text-xs text-red-500 hover:text-red-700 font-medium no-underline flex items-center gap-1">
+            <button onClick={() => setVistaActiva('Asistencias')} className="text-xs text-red-500 hover:text-red-700 font-medium flex items-center gap-1 cursor-pointer">
               Ver historial <ArrowRight size={12} />
-            </Link>
+            </button>
           </div>
 
           {actividadReciente.length === 0 ? (
@@ -258,7 +257,7 @@ export default function DashboardHome({ userName = 'Dina' }) {
           ) : (
             <ul className="space-y-3">
               {actividadReciente.map(item => (
-                <li key={item.id} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                <li key={item.id} onClick={() => setVistaActiva('Asistencias')} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                   <span className="text-xs font-mono font-semibold text-slate-400 dark:text-slate-500 w-12 shrink-0">{formatHora(item.hora)}</span>
                   <div className="flex-1 min-w-0">
                     {item.tipo === 'asistencia' && <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 mb-0.5">ENTRADA</span>}
@@ -330,8 +329,7 @@ export default function DashboardHome({ userName = 'Dina' }) {
                     {topMembers.map((m, i) => (
                       <li
                         key={m.id}
-                        onClick={() => navigate(`/miembro/${m.id}`)}
-                        className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800"
                       >
                         <span className="text-2xl font-bold text-slate-300 dark:text-slate-600 w-8 text-center shrink-0">
                           {i === 0 ? '🏆' : i + 1}

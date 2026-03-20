@@ -27,8 +27,8 @@ export default function MiembroPerfilView() {
       <div className="p-8 flex flex-col items-center justify-center min-h-96">
         <UserCircle size={48} className="text-slate-300 dark:text-slate-600 mb-4" />
         <p className="text-lg text-slate-500 dark:text-slate-400 mb-4">Miembro no encontrado</p>
-        <Link to="/suscripciones" className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium text-sm no-underline">
-          Volver a Suscripciones
+        <Link to="/miembros" className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium text-sm no-underline">
+          Volver a Miembros
         </Link>
       </div>
     )

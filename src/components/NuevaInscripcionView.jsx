@@ -1,15 +1,16 @@
-import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { ArrowLeft, UserPlus, Download, Send, X, AlertTriangle } from 'lucide-react'
+import QRCode from 'react-qr-code'
+import { toPng } from 'html-to-image'
 import { formatDate, addMonths } from '../utils/helpers'
 import { inputClasses, inputErrorClasses, inputReadOnly, planes } from '../utils/constants'
 import { useToast } from '../context/ToastContext'
 import { useGym } from '../context/GymContext'
+import { TicketWhatsApp } from './TicketWhatsApp'
 
-export default function NuevaInscripcionView() {
+export default function NuevaInscripcionView({ setVistaActiva }) {
   const { mostrarToast } = useToast()
   const { miembros, agregarMiembro, agregarRegistro } = useGym()
-  const navigate = useNavigate()
 
   const [nombre, setNombre] = useState('')
   const [apellido, setApellido] = useState('')
@@ -52,6 +53,12 @@ export default function NuevaInscripcionView() {
   const [deposito, setDeposito] = useState('')
 
   const [errores, setErrores] = useState({})
+  const [ticketExito, setTicketExito] = useState(null)
+
+  // Flujo de bienvenida QR (Paso 2)
+  const [nuevoMiembroQR, setNuevoMiembroQR] = useState(null)
+  const [mostrarAlertaWA, setMostrarAlertaWA] = useState(false)
+  const qrBienvenidaRef = useRef(null)
 
   useEffect(() => {
     if (modoFecha === 'automatico') {
@@ -120,9 +127,12 @@ export default function NuevaInscripcionView() {
     const [yi, mi, di] = fechaInicio.split('-')
     const [yf, mf, df] = fechaFin.split('-')
 
+    const codigoQR = `TRAMUSA-${nombre.trim().replace(/\s+/g, '').substring(0, 4).toUpperCase()}-2026`
+    const nombreCompleto = `${nombre.trim()} ${apellido.trim()}`
+
     agregarMiembro({
       dni: numDoc,
-      nombre: `${nombre.trim()} ${apellido.trim()}`,
+      nombre: nombreCompleto,
       celular,
       plan: nombrePlan,
       estado: 'activo',
@@ -131,7 +141,11 @@ export default function NuevaInscripcionView() {
       contactoNombre: contactoNombre || undefined,
       contactoTelefono: contactoTelefono || undefined,
       turno: turno || undefined,
+      codigoQR,
     })
+
+    // Guardar datos para el modal de bienvenida QR (Paso 2)
+    setNuevoMiembroQR({ nombre: nombreCompleto, celular, codigoQR })
 
     if (monto) {
       agregarRegistro({
@@ -142,7 +156,75 @@ export default function NuevaInscripcionView() {
     }
 
     mostrarToast(`${nombre.trim()} ${apellido.trim()} inscrito correctamente`)
-    navigate('/suscripciones')
+
+    setTicketExito({
+      cliente: `${nombre.trim()} ${apellido.trim()}`,
+      operacion: `Inscripción: ${nombrePlan}`,
+      monto: parseFloat(monto).toFixed(2),
+      fecha: new Date().toLocaleDateString('es-PE'),
+    })
+  }
+
+  // --- Funciones del flujo de bienvenida QR ---
+  const descargarQRBienvenida = async () => {
+    if (!qrBienvenidaRef.current || !nuevoMiembroQR) return
+    try {
+      const dataUrl = await toPng(qrBienvenidaRef.current, { quality: 1.0, pixelRatio: 3, backgroundColor: '#ffffff' })
+      const link = document.createElement('a')
+      link.href = dataUrl
+      link.download = `Pase_QR_${nuevoMiembroQR.nombre.replace(/\s+/g, '_')}.png`
+      link.click()
+      mostrarToast(`QR de ${nuevoMiembroQR.nombre.split(' ')[0]} descargado`)
+    } catch (err) {
+      console.error('Error al descargar QR:', err)
+      mostrarToast('Error al descargar el QR', 'error')
+    }
+  }
+
+  const enviarQRWhatsApp = () => {
+    setMostrarAlertaWA(true)
+  }
+
+  const confirmarEnvioWA = () => {
+    if (!nuevoMiembroQR) return
+
+    const mensaje = `¡Hola *${nuevoMiembroQR.nombre}*! 👋\n\n¡Bienvenido a *TRAMUSA S.A.*!\n\nAdjunto a este mensaje te enviamos tu *Pase de Ingreso QR*. Por favor, muéstralo en recepción cada vez que vengas a entrenar.\n\n¡A darle con todo! 💪`
+    const celular = nuevoMiembroQR.celular ? `51${nuevoMiembroQR.celular}` : ''
+    const url = celular
+      ? `https://wa.me/${celular}?text=${encodeURIComponent(mensaje)}`
+      : `https://wa.me/?text=${encodeURIComponent(mensaje)}`
+    window.open(url, '_blank')
+
+    setMostrarAlertaWA(false)
+  }
+
+  const cerrarFlujoBienvenida = () => {
+    // 1. Cerrar modal QR
+    setNuevoMiembroQR(null)
+
+    // 2. Limpiar formulario completo
+    setNombre('')
+    setApellido('')
+    setTipoDoc('dni')
+    setNumDoc('')
+    setCelular('')
+    setContactoNombre('')
+    setContactoTelefono('')
+    setModoFecha('automatico')
+    setPlan('mensual')
+    setFechaInicio(formatDate(new Date()))
+    setFechaFin('')
+    setTurno('')
+    setMonto('')
+    setMontoDisplay('')
+    setOtros('')
+    setRecibo('')
+    setBoleta('')
+    setDeposito('')
+    setErrores({})
+
+    // 3. Redirigir al Inicio
+    setVistaActiva('Inicio')
   }
 
   function getClase(campo) {
@@ -153,13 +235,13 @@ export default function NuevaInscripcionView() {
     <div className="p-8 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Nueva Inscripción</h2>
-        <Link
-          to="/"
-          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-medium transition-colors no-underline"
+        <button
+          onClick={() => setVistaActiva('Inicio')}
+          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-medium transition-colors cursor-pointer"
         >
           <ArrowLeft size={16} />
           Volver
-        </Link>
+        </button>
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm dark:shadow-none border border-slate-100 dark:border-slate-800 p-8 space-y-8">
@@ -382,6 +464,109 @@ export default function NuevaInscripcionView() {
           </button>
         </div>
       </form>
+
+      {/* COMPROBANTE ELECTRÓNICO (Paso 1) */}
+      {ticketExito && (
+        <TicketWhatsApp
+          ticket={ticketExito}
+          onClose={() => {
+            setTicketExito(null)
+          }}
+        />
+      )}
+
+      {/* MODAL DE BIENVENIDA Y ENTREGA DE QR (Paso 2) */}
+      {nuevoMiembroQR && !ticketExito && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-transparent dark:border-slate-800">
+
+            {/* Cabecera */}
+            <div className="p-6 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 text-center relative">
+              <button
+                onClick={cerrarFlujoBienvenida}
+                className="absolute top-4 right-4 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 bg-white dark:bg-slate-800 rounded-full p-1 shadow-sm cursor-pointer transition-colors"
+              >
+                <X size={20} />
+              </button>
+              <div className="w-16 h-16 bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                <UserPlus size={32} />
+              </div>
+              <h2 className="font-black text-slate-800 dark:text-slate-100 text-2xl tracking-tight">Inscripcion Exitosa!</h2>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Entrega el pase de acceso al nuevo miembro.</p>
+            </div>
+
+            {/* Contenedor del QR (se descarga como imagen) */}
+            <div className="p-8 flex flex-col items-center justify-center bg-white" ref={qrBienvenidaRef}>
+              <h3 className="font-bold text-slate-800 text-xl mb-1">{nuevoMiembroQR.nombre}</h3>
+              <p className="text-xs font-bold text-slate-400 tracking-widest uppercase mb-6">ID: {nuevoMiembroQR.codigoQR}</p>
+              <div className="bg-white p-4 rounded-2xl border-2 border-slate-100 shadow-sm inline-block">
+                <QRCode value={nuevoMiembroQR.codigoQR || 'ERROR'} size={180} level="H" />
+              </div>
+              <p className="text-[10px] text-slate-400 mt-4 font-bold tracking-wider">TRAMUSA S.A. - PASE OFICIAL</p>
+            </div>
+
+            {/* Botones de accion */}
+            <div className="p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 space-y-3">
+              <button
+                onClick={descargarQRBienvenida}
+                className="w-full bg-slate-800 dark:bg-slate-200 hover:bg-slate-700 dark:hover:bg-slate-300 text-white dark:text-slate-900 font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer"
+              >
+                <Download size={18} /> Descargar QR de {nuevoMiembroQR.nombre.split(' ')[0]}
+              </button>
+
+              <button
+                onClick={enviarQRWhatsApp}
+                className="w-full bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer"
+              >
+                <Send size={18} /> Enviar por WhatsApp
+              </button>
+
+              <button
+                onClick={cerrarFlujoBienvenida}
+                className="w-full text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-medium py-2 text-sm transition-colors cursor-pointer"
+              >
+                Cerrar
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* MODAL MINIMALISTA DE ADVERTENCIA WHATSAPP */}
+      {mostrarAlertaWA && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden p-6 text-center border border-transparent dark:border-slate-800">
+
+            <div className="w-16 h-16 bg-blue-50 dark:bg-blue-500/10 text-blue-500 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle size={32} />
+            </div>
+
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">Advertencia Importante</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+              Recuerda adjuntar la imagen del QR que acabas de descargar junto con este mensaje para <span className="font-bold text-slate-700 dark:text-slate-200">{nuevoMiembroQR?.nombre}</span>.
+              <br /><br />
+              ¿Ya descargaste el QR y deseas continuar a WhatsApp?
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setMostrarAlertaWA(false)}
+                className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-3 rounded-xl transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarEnvioWA}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors shadow-sm cursor-pointer"
+              >
+                Aceptar
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   )
 }

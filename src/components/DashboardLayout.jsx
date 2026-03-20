@@ -1,17 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { Home, UserPlus, CreditCard, CalendarCheck, CalendarDays, BarChart3, Bell, Check, BellOff, Sun, Moon, LogOut } from 'lucide-react'
+import { Home, Users, CalendarCheck, DollarSign, LayoutList, Settings, Bell, Check, BellOff, Sun, Moon, LogOut, Menu, X } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 
 const logoTramusa = '/logo_empresa_tramusa.svg'
 
-const menuItems = [
-  { name: 'Inicio', path: '/', icon: Home },
-  { name: 'Asistencias', path: '/asistencias', icon: CalendarCheck },
-  { name: 'Nueva Inscripción', path: '/nueva-inscripcion', icon: UserPlus },
-  { name: 'Suscripciones', path: '/suscripciones', icon: CreditCard },
-  { name: 'Calendario', path: '/calendario', icon: CalendarDays },
-  { name: 'Reportes', path: '/reportes', icon: BarChart3 },
+export const menuItems = [
+  { icon: Home, label: 'Inicio', roles: ['admin', 'recepcionista'] },
+  { icon: Users, label: 'Miembros', roles: ['admin', 'recepcionista'] },
+  { icon: CalendarCheck, label: 'Asistencias', roles: ['admin', 'recepcionista'] },
+  { icon: DollarSign, label: 'Finanzas', roles: ['admin'] },
+  { icon: LayoutList, label: 'Planes', roles: ['admin'] },
+  { icon: Settings, label: 'Configuración', roles: ['admin'] },
 ]
 
 function formatDateTime(date) {
@@ -22,16 +21,22 @@ function formatDateTime(date) {
   return `${day} ${month} ${year} • ${time}`
 }
 
-export default function DashboardLayout({ children, userName, onLogout }) {
+export default function DashboardLayout({ children, usuario, onLogout, vistaActiva, setVistaActiva }) {
   const { darkMode, toggleDarkMode } = useTheme()
-  const location = useLocation()
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [menuAbierto, setMenuAbierto] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
-  const [notificaciones, setNotificaciones] = useState([])
+  const [notificaciones, setNotificaciones] = useState([
+    { id: 1, texto: 'La suscripción de Jorge Calderón vence hoy', tipo: 'danger', leido: false },
+    { id: 2, texto: 'Juan Carlos Pérez vence en 2 días', tipo: 'warning', leido: false },
+    { id: 3, texto: 'María López completó 30 asistencias este mes', tipo: 'warning', leido: false },
+    { id: 4, texto: 'Nuevo ingreso: Andrea Villanueva se inscribió hoy', tipo: 'warning', leido: false },
+    { id: 5, texto: 'Rosa Méndez tiene 2 semanas sin asistir', tipo: 'danger', leido: false },
+  ])
   const dropdownRef = useRef(null)
 
-  const activeItem = menuItems.find((i) => i.path === location.pathname)
-  const isHome = location.pathname === '/'
+  const filteredMenu = menuItems.filter(item => item.roles.includes(usuario.rol))
+  const isHome = vistaActiva === 'Inicio'
 
   const noLeidas = notificaciones.filter((n) => !n.leido).length
 
@@ -58,61 +63,129 @@ export default function DashboardLayout({ children, userName, onLogout }) {
     setNotificaciones((prev) => prev.map((n) => ({ ...n, leido: true })))
   }
 
+  function navegarA(label) {
+    setVistaActiva(label)
+    setMenuAbierto(false)
+  }
+
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 transition-colors">
-      <aside className="w-64 bg-white dark:bg-slate-900 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] dark:shadow-none dark:border-r dark:border-slate-800 flex flex-col transition-colors">
-        <div className="px-6 py-8 flex items-center">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors">
+
+      {/* OVERLAY OSCURO PARA MÓVILES */}
+      {menuAbierto && (
+        <div
+          className="fixed inset-0 bg-slate-900/50 z-40 md:hidden backdrop-blur-sm transition-opacity"
+          onClick={() => setMenuAbierto(false)}
+        />
+      )}
+
+      {/* SIDEBAR NAVEGACIÓN (Responsivo) */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] dark:shadow-none transform transition-transform duration-300 ease-in-out
+        ${menuAbierto ? 'translate-x-0' : '-translate-x-full'}
+        md:relative md:translate-x-0 flex flex-col
+      `}>
+        {/* Cabecera del Sidebar con Logo */}
+        <div className="px-6 py-8 flex items-center justify-between">
           <img src={logoTramusa} alt="Tramusa Gym" className="w-auto h-36" />
+          {/* Botón cerrar solo visible en móvil */}
+          <button
+            onClick={() => setMenuAbierto(false)}
+            className="md:hidden text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer"
+          >
+            <X size={24} />
+          </button>
         </div>
 
-        <nav className="flex-1 px-4">
+        {/* Lista de navegación */}
+        <nav className="flex-1 px-4 overflow-y-auto">
           <ul className="space-y-1">
-            {menuItems.map((item) => (
-              <li key={item.path}>
-                <Link
-                  to={item.path}
-                  className={`w-full text-left py-2.5 px-4 rounded-2xl text-sm transition-all flex items-center gap-3 ${
-                    location.pathname === item.path
+            {filteredMenu.map((item) => (
+              <li key={item.label}>
+                <button
+                  onClick={() => navegarA(item.label)}
+                  className={`w-full text-left py-2.5 px-4 rounded-2xl text-sm transition-all flex items-center gap-3 cursor-pointer ${
+                    vistaActiva === item.label
                       ? 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 font-semibold'
                       : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-700 dark:hover:text-slate-200'
                   }`}
                 >
                   <item.icon size={18} />
-                  {item.name}
-                </Link>
+                  {item.label}
+                </button>
               </li>
             ))}
           </ul>
         </nav>
 
-        {/* User Info & Logout (Bottom of Sidebar) */}
+        {/* User Info & Logout */}
         <div className="p-4 mt-auto border-t border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3 px-2 mb-4">
             <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center font-bold text-sm shrink-0">
-              {userName ? userName.charAt(0).toUpperCase() : 'U'}
+              {usuario.nombre.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{userName || 'Administrador'}</p>
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{usuario.nombre}</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 capitalize">{usuario.rol}</p>
             </div>
           </div>
           <button
             onClick={onLogout}
-            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 transition-all"
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 transition-all cursor-pointer"
           >
             <LogOut size={18} />
             Cerrar Sesión
           </button>
         </div>
-
       </aside>
 
-      <div className="flex-1 flex flex-col overflow-hidden p-6 gap-6">
-        <header className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm dark:shadow-none dark:border dark:border-slate-800 px-8 py-5 flex items-center justify-between transition-colors">
+      {/* ÁREA DE CONTENIDO PRINCIPAL */}
+      <main className="flex-1 flex flex-col w-full h-screen overflow-hidden">
+
+        {/* TOPBAR PARA MÓVILES */}
+        <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between z-30 shadow-sm">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMenuAbierto(true)}
+              className="text-slate-600 dark:text-slate-400 p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+            >
+              <Menu size={24} />
+            </button>
+            <span className="font-bold text-slate-800 dark:text-slate-100">TRAMUSA S.A.</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleDarkMode}
+              className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all"
+            >
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+            {/* Notificaciones móvil */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
+              >
+                <Bell size={18} />
+                {noLeidas > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* HEADER PARA DESKTOP */}
+        <header className="hidden md:flex bg-white dark:bg-slate-900 rounded-2xl shadow-sm dark:shadow-none dark:border dark:border-slate-800 px-8 py-5 items-center justify-between transition-colors mx-6 mt-6">
           <h2 className="text-slate-800 dark:text-slate-100 text-lg font-semibold">
-            {isHome ? 'Panel Principal' : activeItem?.name || 'Panel Principal'}
+            {isHome ? 'Panel Principal' : vistaActiva}
           </h2>
 
           <div className="flex items-center gap-5">
+            <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+              Hola, <span className="text-slate-700 dark:text-slate-200 font-semibold">{usuario.nombre}</span>
+            </span>
+
             <span className="text-lg font-semibold text-slate-700 dark:text-slate-300">
               {formatDateTime(currentTime)}
             </span>
@@ -125,7 +198,7 @@ export default function DashboardLayout({ children, userName, onLogout }) {
               {darkMode ? <Sun size={20} className="animate-[themeSpin_0.5s_ease-out]" /> : <Moon size={20} className="animate-[themeSpin_0.5s_ease-out]" />}
             </button>
 
-            {/* Notificaciones */}
+            {/* Notificaciones desktop */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
@@ -187,19 +260,20 @@ export default function DashboardLayout({ children, userName, onLogout }) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto rounded-2xl">
+        {/* CONTENEDOR DE LA VISTA ACTIVA (Scrollable) */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
           {children}
-        </main>
-      </div>
+        </div>
+      </main>
 
       {!isHome && (
-        <Link
-          to="/"
-          className="fixed bottom-8 right-8 z-50 flex items-center gap-2 bg-red-600 text-white px-5 py-3 rounded-full font-medium shadow-lg shadow-red-600/20 dark:shadow-none hover:-translate-y-1 hover:shadow-xl hover:bg-red-700 transition-all duration-300"
+        <button
+          onClick={() => navegarA('Inicio')}
+          className="fixed bottom-8 right-8 z-50 flex items-center gap-2 bg-red-600 text-white px-5 py-3 rounded-full font-medium shadow-lg shadow-red-600/20 dark:shadow-none hover:-translate-y-1 hover:shadow-xl hover:bg-red-700 transition-all duration-300 cursor-pointer"
         >
           <Home size={18} />
           Inicio
-        </Link>
+        </button>
       )}
     </div>
   )

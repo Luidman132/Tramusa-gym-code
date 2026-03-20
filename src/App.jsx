@@ -1,37 +1,41 @@
 import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import DashboardLayout from './components/DashboardLayout'
-import DashboardHome from './components/DashboardHome'
-import SuscripcionesView from './components/SuscripcionesView'
+import DashboardInicio from './components/DashboardInicio'
+import MiembrosView from './components/MiembrosView'
 import NuevaInscripcionView from './components/NuevaInscripcionView'
 import RegistrarAsistenciaView from './components/RegistrarAsistenciaView'
-import CalendarioView from './components/CalendarioView'
-import MiembroPerfilView from './components/MiembroPerfilView'
 import ReportesView from './components/ReportesView'
+import PlanesView from './components/PlanesView'
+import ConfiguracionView from './components/ConfiguracionView'
 import LoginView from './components/LoginView'
 
 function App() {
-  const [user, setUser] = useState(null)
+  const [usuario, setUsuario] = useState(null)
+  const [vistaActiva, setVistaActiva] = useState('Inicio')
+  const [miembroPreSeleccionado, setMiembroPreSeleccionado] = useState(null)
 
-  // Recuperar sesión persistente simple al recargar
+  // Recuperar sesión persistente al recargar
   useEffect(() => {
-    const savedUser = localStorage.getItem('tramusa_user_temp')
-    if (savedUser) {
-      setUser(JSON.parse(savedUser))
+    const saved = localStorage.getItem('tramusa_user_temp')
+    if (saved) {
+      setUsuario(JSON.parse(saved))
     }
   }, [])
 
   function handleLogin(userData) {
-    setUser(userData)
+    setUsuario(userData)
+    setVistaActiva('Inicio')
     localStorage.setItem('tramusa_user_temp', JSON.stringify(userData))
   }
 
   function handleLogout() {
-    setUser(null)
+    setUsuario(null)
+    setVistaActiva('Inicio')
     localStorage.removeItem('tramusa_user_temp')
   }
 
-  if (!user) {
+  if (!usuario) {
     return (
       <Routes>
         <Route path="/login" element={<LoginView onLogin={handleLogin} />} />
@@ -40,19 +44,39 @@ function App() {
     )
   }
 
+  function renderContent() {
+    switch (vistaActiva) {
+      case 'Inicio':
+        return <DashboardInicio userName={usuario.nombre} setVistaActiva={setVistaActiva} setMiembroPreSeleccionado={setMiembroPreSeleccionado} />
+      case 'Miembros':
+        return <MiembrosView setVistaActiva={setVistaActiva} miembroPreSeleccionado={miembroPreSeleccionado} setMiembroPreSeleccionado={setMiembroPreSeleccionado} />
+      case 'Nueva Inscripcion':
+        return <NuevaInscripcionView setVistaActiva={setVistaActiva} />
+      case 'Asistencias':
+        return <RegistrarAsistenciaView usuario={usuario} miembroPreSeleccionado={miembroPreSeleccionado} setMiembroPreSeleccionado={setMiembroPreSeleccionado} />
+      case 'Finanzas':
+        return <ReportesView />
+      case 'Planes':
+        return <PlanesView />
+      case 'Configuración':
+        return <ConfiguracionView />
+      default:
+        return (
+          <div className="p-8 text-slate-500 dark:text-slate-400">
+            Vista "{vistaActiva}" en construcción...
+          </div>
+        )
+    }
+  }
+
   return (
-    <DashboardLayout userName={user.nombre} onLogout={handleLogout}>
-      <Routes>
-        <Route path="/" element={<DashboardHome userName={user.nombre} />} />
-        <Route path="/suscripciones" element={<SuscripcionesView />} />
-        <Route path="/nueva-inscripcion" element={<NuevaInscripcionView />} />
-        <Route path="/asistencias" element={<RegistrarAsistenciaView />} />
-        <Route path="/calendario" element={<CalendarioView />} />
-        <Route path="/miembro/:id" element={<MiembroPerfilView />} />
-        <Route path="/reportes" element={<ReportesView />} />
-        <Route path="/login" element={<Navigate to="/" replace />} />
-        <Route path="*" element={<DashboardHome userName={user.nombre} />} />
-      </Routes>
+    <DashboardLayout
+      usuario={usuario}
+      onLogout={handleLogout}
+      vistaActiva={vistaActiva}
+      setVistaActiva={setVistaActiva}
+    >
+      {renderContent()}
     </DashboardLayout>
   )
 }

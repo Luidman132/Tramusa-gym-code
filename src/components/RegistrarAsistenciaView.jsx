@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Search, UserCircle, UserPlus, ArrowRight, CheckCircle, Pencil, Ticket } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Search, UserCircle, UserPlus, ArrowRight, CheckCircle, Pencil, Ticket, QrCode } from 'lucide-react'
 import { formatHora, parseMonto } from '../utils/helpers'
 import { inputClasses, inputErrorClasses, estilosEstado } from '../utils/constants'
 import { useToast } from '../context/ToastContext'
@@ -8,8 +8,10 @@ import ModalRenovacion from './asistencias/ModalRenovacion'
 import ModalPaseTemporal from './asistencias/ModalPaseTemporal'
 import ModalEditarCliente from './asistencias/ModalEditarCliente'
 import ModalEditarRegistro from './asistencias/ModalEditarRegistro'
+import { CurrencyInput } from './CurrencyInput'
+import { AsistenciaQRScanner } from './AsistenciaQRScanner'
 
-export default function RegistrarAsistenciaView() {
+export default function RegistrarAsistenciaView({ usuario, miembroPreSeleccionado, setMiembroPreSeleccionado }) {
   const { mostrarToast } = useToast()
   const { miembros, historial, actualizarMiembro, agregarRegistro, actualizarRegistro, eliminarRegistro } = useGym()
 
@@ -26,24 +28,6 @@ export default function RegistrarAsistenciaView() {
   const [celularVisita, setCelularVisita] = useState('')
   const [correoVisita, setCorreoVisita] = useState('')
   const [montoVisita, setMontoVisita] = useState('')
-  const [montoVisitaDisplay, setMontoVisitaDisplay] = useState('')
-
-  function handleMontoVisitaChange(e) {
-    const raw = e.target.value.replace(/[^0-9]/g, '')
-    if (!raw) {
-      setMontoVisita('')
-      setMontoVisitaDisplay('')
-      limpiarErrorVisita('monto')
-      return
-    }
-    const numero = parseInt(raw, 10)
-    const valorReal = (numero / 100).toFixed(2)
-    setMontoVisita(valorReal)
-    const partes = valorReal.split('.')
-    const entero = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-    setMontoVisitaDisplay(`S/ ${entero}.${partes[1]}`)
-    limpiarErrorVisita('monto')
-  }
 
   const [erroresVisita, setErroresVisita] = useState({})
 
@@ -52,6 +36,16 @@ export default function RegistrarAsistenciaView() {
   const [mostrarModalPase, setMostrarModalPase] = useState(false)
   const [mostrarModalEditarCliente, setMostrarModalEditarCliente] = useState(false)
   const [registroAEditar, setRegistroAEditar] = useState(null)
+  const [mostrarScanner, setMostrarScanner] = useState(false)
+  const [alertaExito, setAlertaExito] = useState(null)
+
+  useEffect(() => {
+    if (miembroPreSeleccionado) {
+      setClienteSeleccionado(miembroPreSeleccionado)
+      setBusqueda('')
+      setMiembroPreSeleccionado(null)
+    }
+  }, [miembroPreSeleccionado, setMiembroPreSeleccionado])
 
   function limpiarBusqueda() {
     setClienteSeleccionado(null)
@@ -120,7 +114,6 @@ export default function RegistrarAsistenciaView() {
     setCelularVisita('')
     setCorreoVisita('')
     setMontoVisita('')
-    setMontoVisitaDisplay('')
     setErroresVisita({})
     setMostrandoPaseRapido(false)
   }
@@ -225,6 +218,49 @@ export default function RegistrarAsistenciaView() {
     setRegistroAEditar(null)
   }
 
+  function procesarQR(codigoQR) {
+    setMostrarScanner(false)
+
+    const miembroEncontrado = miembros.find(m => m.codigoQR === codigoQR)
+
+    if (miembroEncontrado) {
+      if (miembroEncontrado.estado === 'vencido') {
+        mostrarToast(`El plan de ${miembroEncontrado.nombre} está vencido. Debe renovar.`, 'error')
+        seleccionarCliente(miembroEncontrado)
+      } else if (miembroEncontrado.estado === 'pase_activo') {
+        const nuevosDias = miembroEncontrado.diasRestantes - 1
+        agregarRegistro({
+          tipo: 'asistencia',
+          titulo: miembroEncontrado.nombre,
+          detalle: `Pase QR: Dias restantes ${nuevosDias}`,
+        })
+        if (nuevosDias <= 0) {
+          actualizarMiembro(miembroEncontrado.id, { estado: 'vencido', diasRestantes: 0 })
+        } else {
+          actualizarMiembro(miembroEncontrado.id, { diasRestantes: nuevosDias })
+        }
+        setAlertaExito({
+          nombre: miembroEncontrado.nombre,
+          hora: new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
+        })
+        setTimeout(() => setAlertaExito(null), 3500)
+      } else {
+        agregarRegistro({
+          tipo: 'asistencia',
+          titulo: miembroEncontrado.nombre,
+          detalle: `Plan: ${miembroEncontrado.plan} (QR)`,
+        })
+        setAlertaExito({
+          nombre: miembroEncontrado.nombre,
+          hora: new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
+        })
+        setTimeout(() => setAlertaExito(null), 3500)
+      }
+    } else {
+      mostrarToast('Código QR no reconocido o cliente no existe.', 'error')
+    }
+  }
+
   const estilo = clienteSeleccionado ? estilosEstado[clienteSeleccionado.estado] : null
 
   const historialFiltrado = historial.filter(item => {
@@ -280,6 +316,16 @@ export default function RegistrarAsistenciaView() {
               </div>
             )}
           </div>
+
+          {/* Botón Escanear QR */}
+          <button
+            type="button"
+            onClick={() => setMostrarScanner(true)}
+            className="w-full flex items-center justify-center gap-3 p-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-semibold text-lg shadow-sm hover:shadow-md transition-all cursor-pointer"
+          >
+            <QrCode size={24} />
+            Escanear QR de Asistencia
+          </button>
 
           {/* Visita libre */}
           {!mostrandoPaseRapido ? (
@@ -345,7 +391,7 @@ export default function RegistrarAsistenciaView() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Monto <span className="text-red-400">*</span></label>
-                    <input type="text" inputMode="numeric" value={montoVisitaDisplay} onChange={handleMontoVisitaChange} placeholder="S/ 0.00" className={erroresVisita.monto ? inputErrorClasses : inputClasses} />
+                    <CurrencyInput value={montoVisita} onChange={(v) => { setMontoVisita(v); limpiarErrorVisita('monto') }} />
                   </div>
                 </div>
 
@@ -502,10 +548,34 @@ export default function RegistrarAsistenciaView() {
       {registroAEditar && (
         <ModalEditarRegistro
           registro={registroAEditar}
+          usuario={usuario}
           onGuardar={guardarEdicionHistorial}
           onEliminar={eliminarRegistroHistorial}
           onCerrar={() => setRegistroAEditar(null)}
         />
+      )}
+
+      {mostrarScanner && (
+        <AsistenciaQRScanner onClose={() => setMostrarScanner(false)} onScanValid={procesarQR} />
+      )}
+
+      {/* MODAL ANIMADO DE ÉXITO DE ASISTENCIA */}
+      {alertaExito && (
+        <div className="fixed inset-0 z-120 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 transition-all duration-300">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden text-center border-4 border-emerald-400">
+            <div className="bg-emerald-500 p-8 flex flex-col items-center justify-center animate-pulse">
+              <div className="bg-white p-4 rounded-full mb-4 shadow-lg">
+                <CheckCircle size={56} className="text-emerald-500" />
+              </div>
+              <h3 className="text-3xl font-black text-white tracking-tight">¡Adelante!</h3>
+            </div>
+            <div className="p-8 bg-white">
+              <p className="text-emerald-600 font-bold text-sm uppercase tracking-widest mb-2">Asistencia Registrada</p>
+              <p className="text-2xl font-bold text-slate-800 tracking-tight mb-2">{alertaExito.nombre}</p>
+              <p className="text-slate-500 font-medium">Hora de ingreso: {alertaExito.hora}</p>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

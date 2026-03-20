@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { X, Trash2, Save, User, DollarSign, CreditCard, FileText, Phone, Mail, IdCard } from 'lucide-react'
+import { X, Trash2, Save, User, DollarSign, CreditCard, Phone, Mail, IdCard } from 'lucide-react'
 import { inputClasses } from '../../utils/constants'
+import { CurrencyInput } from '../CurrencyInput'
 
-export default function ModalEditarRegistro({ registro, onGuardar, onEliminar, onCerrar }) {
+export default function ModalEditarRegistro({ registro, usuario, onGuardar, onEliminar, onCerrar }) {
   const esVisitaLibre = !!registro.visitaLibre
 
   // Nombre(s) y Apellido(s)
@@ -33,12 +34,9 @@ export default function ModalEditarRegistro({ registro, onGuardar, onEliminar, o
   // Monto
   const montoMatch = registro.detalle.match(/S\/\s*([0-9.]+)/)
   const montoInicial = montoMatch ? montoMatch[1] : ''
-  const [monto, setMonto] = useState(montoInicial)
-  const [montoDisplay, setMontoDisplay] = useState(() => {
+  const [monto, setMonto] = useState(() => {
     if (!montoInicial) return ''
-    const partes = parseFloat(montoInicial).toFixed(2).split('.')
-    const entero = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-    return `S/ ${entero}.${partes[1]}`
+    return parseFloat(montoInicial).toFixed(2)
   })
 
   // Plan
@@ -46,21 +44,6 @@ export default function ModalEditarRegistro({ registro, onGuardar, onEliminar, o
   const [plan, setPlan] = useState(planMatch ? planMatch[1].trim() : '')
 
   const [confirmandoEliminar, setConfirmandoEliminar] = useState(false)
-
-  function handleMontoChange(e) {
-    const raw = e.target.value.replace(/[^0-9]/g, '')
-    if (!raw) {
-      setMonto('')
-      setMontoDisplay('')
-      return
-    }
-    const numero = parseInt(raw, 10)
-    const valorReal = (numero / 100).toFixed(2)
-    setMonto(valorReal)
-    const partes = valorReal.split('.')
-    const entero = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-    setMontoDisplay(`S/ ${entero}.${partes[1]}`)
-  }
 
   function handleGuardar() {
     const nombreFull = [nombres.trim(), apellidos.trim()].filter(Boolean).join(' ')
@@ -236,32 +219,29 @@ export default function ModalEditarRegistro({ registro, onGuardar, onEliminar, o
                 <DollarSign size={14} className="text-slate-400 dark:text-slate-500" />
                 Monto Cobrado
               </label>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={montoDisplay}
-                onChange={handleMontoChange}
-                placeholder="S/ 0.00"
-                className={inputClasses}
-              />
+              <CurrencyInput value={monto} onChange={setMonto} />
             </div>
           )}
         </div>
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={handleEliminar}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-              confirmandoEliminar
-                ? 'bg-red-600 text-white hover:bg-red-700 shadow-sm'
-                : 'text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10'
-            }`}
-          >
-            <Trash2 size={15} />
-            {confirmandoEliminar ? 'Confirmar' : 'Eliminar'}
-          </button>
+          {usuario?.rol === 'admin' ? (
+            <button
+              type="button"
+              onClick={handleEliminar}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                confirmandoEliminar
+                  ? 'bg-red-600 text-white hover:bg-red-700 shadow-sm'
+                  : 'text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10'
+              }`}
+            >
+              <Trash2 size={15} />
+              {confirmandoEliminar ? 'Confirmar' : 'Eliminar'}
+            </button>
+          ) : (
+            <div />
+          )}
           <div className="flex gap-3">
             <button
               type="button"

@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
-import { formatDate, addMonths, handleMontoInput, formatMontoBlur, parseMonto } from '../../utils/helpers'
-import { inputClasses, inputErrorClasses, inputReadOnly, planes } from '../../utils/constants'
+import { formatDate, addMonths, parseMonto } from '../../utils/helpers'
+import { inputClasses, inputReadOnly, planes } from '../../utils/constants'
 import { useToast } from '../../context/ToastContext'
+import { CurrencyInput } from '../CurrencyInput'
 
 export default function ModalRenovacion({ cliente, onConfirmar, onCerrar }) {
   const { mostrarToast } = useToast()
@@ -120,15 +121,8 @@ export default function ModalRenovacion({ cliente, onConfirmar, onCerrar }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1.5">Monto S/</label>
-              <input
-                type="text"
-                value={monto}
-                onChange={(e) => { const v = handleMontoInput(e.target.value); if (v !== null) setMonto(v); setErrores(p => { const c = {...p}; delete c.monto; return c }) }}
-                onBlur={() => setMonto(formatMontoBlur(monto))}
-                placeholder="0.00"
-                className={errores.monto ? inputErrorClasses : inputClasses}
-              />
+              <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1.5">Monto</label>
+              <CurrencyInput value={monto} onChange={(v) => { setMonto(v); setErrores(p => { const c = {...p}; delete c.monto; return c }) }} />
               {errores.monto && <p className="text-xs text-red-500 mt-1">Ingresa el monto</p>}
             </div>
             <div>
