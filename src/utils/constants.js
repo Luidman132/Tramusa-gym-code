@@ -4,11 +4,6 @@ export const inputErrorClasses = 'w-full bg-red-50 dark:bg-red-500/10 border bor
 
 export const inputReadOnly = 'w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm text-slate-500 dark:text-slate-400 cursor-not-allowed'
 
-export const planes = {
-  mensual: { label: 'Mensual (1 mes)', meses: 1 },
-  trimestral: { label: 'Trimestral (3 meses)', meses: 3 },
-  semestral: { label: 'Semestral (6 meses)', meses: 6 },
-}
 
 export const estilosEstado = {
   activo: {

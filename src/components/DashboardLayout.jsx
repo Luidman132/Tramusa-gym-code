@@ -26,13 +26,7 @@ export default function DashboardLayout({ children, usuario, onLogout, vistaActi
   const [currentTime, setCurrentTime] = useState(new Date())
   const [menuAbierto, setMenuAbierto] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
-  const [notificaciones, setNotificaciones] = useState([
-    { id: 1, texto: 'La suscripción de Jorge Calderón vence hoy', tipo: 'danger', leido: false },
-    { id: 2, texto: 'Juan Carlos Pérez vence en 2 días', tipo: 'warning', leido: false },
-    { id: 3, texto: 'María López completó 30 asistencias este mes', tipo: 'warning', leido: false },
-    { id: 4, texto: 'Nuevo ingreso: Andrea Villanueva se inscribió hoy', tipo: 'warning', leido: false },
-    { id: 5, texto: 'Rosa Méndez tiene 2 semanas sin asistir', tipo: 'danger', leido: false },
-  ])
+  const [notificaciones, setNotificaciones] = useState([])
   const dropdownRef = useRef(null)
 
   const filteredMenu = menuItems.filter(item => item.roles.includes(usuario.rol))

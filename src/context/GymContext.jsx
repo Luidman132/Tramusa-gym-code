@@ -2,34 +2,10 @@ import { createContext, useContext, useState } from 'react'
 
 const GymContext = createContext()
 
-const miembrosIniciales = [
-  { id: 1, dni: '70123456', nombre: 'Yomar Crhistian Serrano R.', celular: '987654321', plan: 'Mensual', estado: 'vencido', inicio: '14/01/2026', fin: '14/02/2026', notas: 'Prefiere turno manana. Tiene lesion en rodilla derecha.', codigoQR: 'TRAMUSA-YOMA-2026' },
-  { id: 2, dni: '70234567', nombre: 'Jose Alfredo Gallegos Garcia', celular: '987654322', plan: 'Trimestral', estado: 'activo', inicio: '20/02/2026', fin: '20/05/2026', notas: '', codigoQR: 'TRAMUSA-JOSE-2026' },
-  { id: 3, dni: '70345678', nombre: 'Jorge Calderon Quispe', celular: '987654323', plan: 'Mensual', estado: 'activo', inicio: '13/02/2026', fin: '13/03/2026', notas: 'Viene con su hermano (id 7).', codigoQR: 'TRAMUSA-JORG-2026' },
-  { id: 4, dni: '70456789', nombre: 'Janet Huaman Cano', celular: '987654324', plan: 'Mensual', estado: 'vencido', inicio: '20/01/2026', fin: '20/02/2026', notas: '', codigoQR: 'TRAMUSA-JANE-2026' },
-  { id: 5, dni: '70567890', nombre: 'Mizael Ferrel Mendoza', celular: '987654325', plan: 'Pase Dia', estado: 'pase_activo', diasRestantes: 2, inicio: '06/03/2026', fin: '08/03/2026', notas: '', codigoQR: 'TRAMUSA-MIZA-2026' },
-  { id: 6, dni: '70678901', nombre: 'Stephanie Pamela Huaranca', celular: '987654326', plan: 'Semestral', estado: 'activo', inicio: '30/04/2026', fin: '30/10/2026', notas: 'Entrena para competencia de crossfit.', codigoQR: 'TRAMUSA-STEP-2026' },
-  { id: 7, dni: '71111111', nombre: 'Juan Carlos Perez', celular: '987654327', plan: 'Mensual', estado: 'activo', inicio: '15/02/2026', fin: '15/03/2026', notas: '', codigoQR: 'TRAMUSA-JUCA-2026' },
-  { id: 8, dni: '71111112', nombre: 'Juan Carlos Gomez', celular: '987654328', plan: 'Mensual', estado: 'vencido', inicio: '01/02/2026', fin: '01/03/2026', notas: '', codigoQR: 'TRAMUSA-JUCG-2026' },
-  { id: 9, dni: '71111113', nombre: 'Juan Manuel Vargas', celular: '987654329', plan: 'Trimestral', estado: 'activo', inicio: '10/03/2026', fin: '10/06/2026', notas: '', codigoQR: 'TRAMUSA-JUMA-2026' },
-  { id: 10, dni: '71111114', nombre: 'Juan Diego Flores', celular: '987654330', plan: 'Pase Dia', estado: 'pase_activo', diasRestantes: 1, inicio: '06/03/2026', fin: '07/03/2026', notas: '', codigoQR: 'TRAMUSA-JUDI-2026' },
-  { id: 11, dni: '72222221', nombre: 'Roberto Antonio Silva', celular: '987654331', plan: 'Mensual', estado: 'vencido', inicio: '28/01/2026', fin: '28/02/2026', notas: '', codigoQR: 'TRAMUSA-ROBS-2026' },
-  { id: 12, dni: '72222222', nombre: 'Roberto Antonio Mendez', celular: '987654332', plan: 'Semestral', estado: 'activo', inicio: '12/02/2026', fin: '12/08/2026', notas: '', codigoQR: 'TRAMUSA-ROBM-2026' },
-  { id: 13, dni: '72222223', nombre: 'Roberto Luis Martinez', celular: '987654333', plan: 'Mensual', estado: 'activo', inicio: '17/02/2026', fin: '17/03/2026', notas: '', codigoQR: 'TRAMUSA-ROBL-2026' },
-  { id: 14, dni: '72222224', nombre: 'Roberto Carlos Farfan', celular: '987654334', plan: 'Mensual', estado: 'vencido', inicio: '15/12/2025', fin: '15/01/2026', notas: 'Dijo que va a renovar la proxima semana.', codigoQR: 'TRAMUSA-ROBC-2026' },
-  { id: 15, dni: '73333331', nombre: 'Maria Fernanda Rojas', celular: '987654335', plan: 'Trimestral', estado: 'activo', inicio: '22/02/2026', fin: '22/05/2026', notas: '', codigoQR: 'TRAMUSA-MARI-2026' },
-  { id: 16, dni: '73333332', nombre: 'Lucero Milagros Apaza', celular: '987654336', plan: 'Pase Dia', estado: 'pase_activo', diasRestantes: 3, inicio: '06/03/2026', fin: '09/03/2026', notas: '', codigoQR: 'TRAMUSA-LUCE-2026' },
-  { id: 17, dni: '73333333', nombre: 'Andrea Carolina Ramos', celular: '987654337', plan: 'Mensual', estado: 'activo', inicio: '19/02/2026', fin: '19/03/2026', notas: '', codigoQR: 'TRAMUSA-ANDR-2026' },
-  { id: 18, dni: '73333334', nombre: 'Julio Cesar Flores', celular: '987654338', plan: 'Mensual', estado: 'vencido', inicio: '10/01/2026', fin: '10/02/2026', notas: '', codigoQR: 'TRAMUSA-JULI-2026' },
-  { id: 19, dni: '73333335', nombre: 'Diana Carolina Perez', celular: '987654339', plan: 'Semestral', estado: 'activo', inicio: '01/03/2026', fin: '01/09/2026', notas: '', codigoQR: 'TRAMUSA-DIAN-2026' },
-  { id: 20, dni: '73333336', nombre: 'Carlos Eduardo Mamani', celular: '987654340', plan: 'Mensual', estado: 'activo', inicio: '25/02/2026', fin: '25/03/2026', notas: '', codigoQR: 'TRAMUSA-CARL-2026' },
-  { id: 21, dni: '73333337', nombre: 'Sofia Alejandra Paucar', celular: '987654341', plan: 'Trimestral', estado: 'vencido', inicio: '05/12/2025', fin: '05/03/2026', notas: '', codigoQR: 'TRAMUSA-SOFI-2026' },
-  { id: 22, dni: '73333338', nombre: 'Diego Alonso Mejia', celular: '987654342', plan: 'Mensual', estado: 'activo', inicio: '01/03/2026', fin: '29/03/2026', notas: '', codigoQR: 'TRAMUSA-DIEG-2026' },
-]
-
 export function GymProvider({ children }) {
-  const [miembros, setMiembros] = useState(miembrosIniciales)
+  const [miembros, setMiembros] = useState([])
   const [historial, setHistorial] = useState([])
+  const [planes, setPlanes] = useState([])
 
   function agregarMiembro(nuevoMiembro) {
     const id = miembros.length > 0 ? Math.max(...miembros.map(m => m.id)) + 1 : 1
@@ -60,15 +36,37 @@ export function GymProvider({ children }) {
     setHistorial(prev => prev.filter(h => h.id !== id))
   }
 
+  function agregarPlan(nuevoPlan) {
+    const id = planes.length > 0 ? Math.max(...planes.map(p => p.id)) + 1 : 1
+    setPlanes(prev => [...prev, { ...nuevoPlan, id, activo: true }])
+  }
+
+  function actualizarPlan(id, cambios) {
+    setPlanes(prev => prev.map(p => p.id === id ? { ...p, ...cambios } : p))
+  }
+
+  function eliminarPlan(id) {
+    setPlanes(prev => prev.filter(p => p.id !== id))
+  }
+
+  function toggleActivoPlan(id) {
+    setPlanes(prev => prev.map(p => p.id === id ? { ...p, activo: !p.activo } : p))
+  }
+
   return (
     <GymContext.Provider value={{
       miembros,
       historial,
+      planes,
       agregarMiembro,
       actualizarMiembro,
       agregarRegistro,
       actualizarRegistro,
       eliminarRegistro,
+      agregarPlan,
+      actualizarPlan,
+      eliminarPlan,
+      toggleActivoPlan,
     }}>
       {children}
     </GymContext.Provider>

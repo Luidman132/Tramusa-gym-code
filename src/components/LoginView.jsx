@@ -2,10 +2,7 @@ import { useState } from 'react'
 import { Dumbbell, Lock, Mail, ArrowRight } from 'lucide-react'
 import { useToast } from '../context/ToastContext'
 
-const MOCK_USERS = [
-  { email: 'julio@tramusa.pe', password: 'admin123', nombre: 'Julio', rol: 'admin' },
-  { email: 'dina@tramusa.pe', password: 'recepcion123', nombre: 'Dina', rol: 'recepcionista' },
-]
+
 
 export default function LoginView({ onLogin }) {
   const { mostrarToast } = useToast()
@@ -14,22 +11,15 @@ export default function LoginView({ onLogin }) {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     setIsLoading(true)
 
-    setTimeout(() => {
-      const user = MOCK_USERS.find(u => u.email === email && u.password === password)
-
-      if (user) {
-        onLogin({ email: user.email, nombre: user.nombre, rol: user.rol })
-        mostrarToast(`¡Bienvenido, ${user.nombre}!`)
-      } else {
-        setError('Credenciales incorrectas')
-      }
-      setIsLoading(false)
-    }, 800)
+    // TODO: Aquí irá la lógica de supabase.auth.signInWithPassword()
+    // Bypass temporal para no bloquear el desarrollo:
+    alert('Preparando conexión con Supabase Auth...')
+    setIsLoading(false)
   }
 
   return (
@@ -101,12 +91,7 @@ export default function LoginView({ onLogin }) {
               </div>
             )}
 
-            {/* Hint Temporal */}
-            <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 rounded-xl p-3 text-[11px] text-blue-700 dark:text-blue-400 font-medium text-center space-y-1">
-              <p>Datos temporales de prueba:</p>
-              <p><b>julio@tramusa.pe</b> / <b>admin123</b> (Admin)</p>
-              <p><b>dina@tramusa.pe</b> / <b>recepcion123</b> (Recepción)</p>
-            </div>
+
 
             <button
               type="submit"

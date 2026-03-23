@@ -1,14 +1,25 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { formatDate, addMonths, parseMonto } from '../../utils/helpers'
-import { inputClasses, inputReadOnly, planes } from '../../utils/constants'
+import { inputClasses, inputReadOnly } from '../../utils/constants'
 import { useToast } from '../../context/ToastContext'
+import { useGym } from '../../context/GymContext'
 import { CurrencyInput } from '../CurrencyInput'
 
 export default function ModalRenovacion({ cliente, onConfirmar, onCerrar }) {
   const { mostrarToast } = useToast()
+  const { planes } = useGym()
+  const hoyIso = new Date().toISOString().split('T')[0]
+  const planesActivos = planes.filter(p => {
+    if (!p.activo) return false
+    if (p.esPromocion && p.fechaInicioVenta && p.fechaFinVenta) {
+      return hoyIso >= p.fechaInicioVenta && hoyIso <= p.fechaFinVenta
+    }
+    return true
+  })
+
   const [modoFecha, setModoFecha] = useState('automatico')
-  const [plan, setPlan] = useState('mensual')
+  const [plan, setPlan] = useState('Mensual')
   const [inicio, setInicio] = useState(formatDate(new Date()))
   const [fin, setFin] = useState('')
   const [monto, setMonto] = useState('')
@@ -16,8 +27,35 @@ export default function ModalRenovacion({ cliente, onConfirmar, onCerrar }) {
   const [recibo, setRecibo] = useState('')
   const [errores, setErrores] = useState({})
 
+  const planObj = planesActivos.find(p => p.nombre === plan)
+  const esPlanBloqueado = plan !== 'Personalizado' && modoFecha === 'automatico'
+
   const inicioCalculado = modoFecha === 'automatico' ? formatDate(new Date()) : inicio
-  const finCalculado = modoFecha === 'automatico' ? formatDate(addMonths(new Date(), planes[plan].meses)) : fin
+  const finCalculado = modoFecha === 'automatico'
+    ? (planObj
+        ? (planObj.meses > 0
+            ? formatDate(addMonths(new Date(), planObj.meses))
+            : formatDate((() => { const d = new Date(); d.setDate(d.getDate() + 1); return d })()))
+        : '')
+    : fin
+
+  useEffect(() => {
+    if (modoFecha === 'automatico' && planObj) {
+      setMonto(planObj.precio.toFixed(2))
+    }
+  }, [plan, modoFecha])
+
+  function handleCambioPlan(e) {
+    const nombre = e.target.value
+    setPlan(nombre)
+    const encontrado = planesActivos.find(p => p.nombre === nombre)
+    if (encontrado) {
+      setMonto(encontrado.precio.toFixed(2))
+    } else {
+      setMonto('')
+    }
+    setErrores(p => { const c = { ...p }; delete c.monto; return c })
+  }
 
   function handleConfirmar() {
     const errs = {}
@@ -34,7 +72,7 @@ export default function ModalRenovacion({ cliente, onConfirmar, onCerrar }) {
     }
     onConfirmar({
       plan,
-      planLabel: planes[plan].label,
+      planLabel: planObj ? `${planObj.nombre} (${planObj.duracion})` : plan,
       fechaFin: finCalculado,
       monto: monto,
       turno,
@@ -88,10 +126,13 @@ export default function ModalRenovacion({ cliente, onConfirmar, onCerrar }) {
           {modoFecha === 'automatico' && (
             <div>
               <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1.5">Plan</label>
-              <select value={plan} onChange={(e) => setPlan(e.target.value)} className={inputClasses}>
-                {Object.entries(planes).map(([key, { label }]) => (
-                  <option key={key} value={key}>{label}</option>
+              <select value={plan} onChange={handleCambioPlan} className={inputClasses}>
+                {planesActivos.map(p => (
+                  <option key={p.id} value={p.nombre}>
+                    {p.nombre} — S/ {p.precio.toFixed(2)}
+                  </option>
                 ))}
+                <option value="Personalizado">Plan Personalizado (Manual)</option>
               </select>
             </div>
           )}
@@ -122,7 +163,19 @@ export default function ModalRenovacion({ cliente, onConfirmar, onCerrar }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-slate-600 dark:text-slate-400 mb-1.5">Monto</label>
-              <CurrencyInput value={monto} onChange={(v) => { setMonto(v); setErrores(p => { const c = {...p}; delete c.monto; return c }) }} />
+              {esPlanBloqueado ? (
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-normal">S/</span>
+                  <input
+                    type="text"
+                    readOnly
+                    value={monto ? parseFloat(monto).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
+                    className={inputReadOnly + ' pl-10 text-lg font-bold'}
+                  />
+                </div>
+              ) : (
+                <CurrencyInput value={monto} onChange={(v) => { setMonto(v); setErrores(p => { const c = {...p}; delete c.monto; return c }) }} />
+              )}
               {errores.monto && <p className="text-xs text-red-500 mt-1">Ingresa el monto</p>}
             </div>
             <div>

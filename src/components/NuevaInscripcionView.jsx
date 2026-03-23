@@ -3,10 +3,28 @@ import { ArrowLeft, UserPlus, Download, Send, X, AlertTriangle } from 'lucide-re
 import QRCode from 'react-qr-code'
 import { toPng } from 'html-to-image'
 import { formatDate, addMonths } from '../utils/helpers'
-import { inputClasses, inputErrorClasses, inputReadOnly, planes } from '../utils/constants'
+import { inputClasses, inputErrorClasses, inputReadOnly } from '../utils/constants'
 import { useToast } from '../context/ToastContext'
 import { useGym } from '../context/GymContext'
 import { TicketWhatsApp } from './TicketWhatsApp'
+
+const PAISES_CODIGOS = [
+  { codigo: '+51', pais: 'Peru', flag: '\u{1F1F5}\u{1F1EA}' },
+  { codigo: '+1', pais: 'EE.UU. / Canada', flag: '\u{1F1FA}\u{1F1F8}' },
+  { codigo: '+57', pais: 'Colombia', flag: '\u{1F1E8}\u{1F1F4}' },
+  { codigo: '+56', pais: 'Chile', flag: '\u{1F1E8}\u{1F1F1}' },
+  { codigo: '+54', pais: 'Argentina', flag: '\u{1F1E6}\u{1F1F7}' },
+  { codigo: '+55', pais: 'Brasil', flag: '\u{1F1E7}\u{1F1F7}' },
+  { codigo: '+52', pais: 'Mexico', flag: '\u{1F1F2}\u{1F1FD}' },
+  { codigo: '+593', pais: 'Ecuador', flag: '\u{1F1EA}\u{1F1E8}' },
+  { codigo: '+591', pais: 'Bolivia', flag: '\u{1F1E7}\u{1F1F4}' },
+  { codigo: '+34', pais: 'Espana', flag: '\u{1F1EA}\u{1F1F8}' },
+  { codigo: '+44', pais: 'Reino Unido', flag: '\u{1F1EC}\u{1F1E7}' },
+  { codigo: '+49', pais: 'Alemania', flag: '\u{1F1E9}\u{1F1EA}' },
+  { codigo: '+33', pais: 'Francia', flag: '\u{1F1EB}\u{1F1F7}' },
+  { codigo: '+39', pais: 'Italia', flag: '\u{1F1EE}\u{1F1F9}' },
+  { codigo: 'otro', pais: 'Otro...', flag: '\u{1F30D}' },
+]
 
 // Genera un código tipo: TRAMUSA-ANDR-X7B2
 function generarCodigoQRUnico(nombreCompleto) {
@@ -27,17 +45,28 @@ function generarCodigoQRUnico(nombreCompleto) {
 
 export default function NuevaInscripcionView({ setVistaActiva }) {
   const { mostrarToast } = useToast()
-  const { miembros, agregarMiembro, agregarRegistro } = useGym()
+  const { miembros, planes, agregarMiembro, agregarRegistro } = useGym()
+  const hoyIso = new Date().toISOString().split('T')[0]
+
+  const planesActivos = planes.filter(p => {
+    if (!p.activo) return false
+    if (p.esPromocion && p.fechaInicioVenta && p.fechaFinVenta) {
+      return hoyIso >= p.fechaInicioVenta && hoyIso <= p.fechaFinVenta
+    }
+    return true
+  })
 
   const [nombre, setNombre] = useState('')
   const [apellido, setApellido] = useState('')
   const [tipoDoc, setTipoDoc] = useState('dni')
   const [numDoc, setNumDoc] = useState('')
   const [celular, setCelular] = useState('')
+  const [codigoPais, setCodigoPais] = useState('+51')
+  const [codigoPersonalizado, setCodigoPersonalizado] = useState('+')
   const [contactoNombre, setContactoNombre] = useState('')
   const [contactoTelefono, setContactoTelefono] = useState('')
   const [modoFecha, setModoFecha] = useState('automatico')
-  const [plan, setPlan] = useState('mensual')
+  const [plan, setPlan] = useState('Mensual')
   const [fechaInicio, setFechaInicio] = useState(formatDate(new Date()))
   const [fechaFin, setFechaFin] = useState('')
   const [turno, setTurno] = useState('')
@@ -64,6 +93,40 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
     setMontoDisplay(`S/ ${entero}.${partes[1]}`)
     limpiarError('monto')
   }
+  function autoFillMonto(precio) {
+    const valorReal = precio.toFixed(2)
+    setMonto(valorReal)
+    const partes = valorReal.split('.')
+    const entero = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    setMontoDisplay(`S/ ${entero}.${partes[1]}`)
+  }
+
+  function calcularFechaFin(fechaBaseStr, dias) {
+    const fecha = new Date(fechaBaseStr + 'T00:00:00')
+    fecha.setDate(fecha.getDate() + dias)
+    return fecha.toISOString().split('T')[0]
+  }
+
+  function handleCambioPlan(e) {
+    const nombrePlan = e.target.value
+    setPlan(nombrePlan)
+    const planEncontrado = planesActivos.find(p => p.nombre === nombrePlan)
+    if (planEncontrado) {
+      autoFillMonto(planEncontrado.precio)
+      if (planEncontrado.duracionDias) {
+        const fechaBase = fechaInicio || hoyIso
+        setFechaFin(calcularFechaFin(fechaBase, planEncontrado.duracionDias))
+      }
+    } else {
+      setMonto('')
+      setMontoDisplay('')
+      setFechaFin('')
+    }
+    limpiarError('monto')
+  }
+
+  const esPlanBloqueado = plan !== 'Personalizado' && modoFecha === 'automatico'
+
   const [otros, setOtros] = useState('')
   const [recibo, setRecibo] = useState('')
   const [boleta, setBoleta] = useState('')
@@ -79,11 +142,23 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
 
   useEffect(() => {
     if (modoFecha === 'automatico') {
-      const hoy = new Date()
-      setFechaInicio(formatDate(hoy))
-      setFechaFin(formatDate(addMonths(hoy, planes[plan].meses)))
+      const hoyStr = formatDate(new Date())
+      setFechaInicio(hoyStr)
+      const planObj = planesActivos.find(p => p.nombre === plan)
+      if (planObj) {
+        if (planObj.duracionDias) {
+          setFechaFin(calcularFechaFin(hoyStr, planObj.duracionDias))
+        } else if (planObj.meses > 0) {
+          setFechaFin(formatDate(addMonths(new Date(), planObj.meses)))
+        } else {
+          const manana = new Date()
+          manana.setDate(manana.getDate() + 1)
+          setFechaFin(formatDate(manana))
+        }
+        autoFillMonto(planObj.precio)
+      }
     }
-  }, [modoFecha, plan])
+  }, [modoFecha, plan, planesActivos.length])
 
   function limpiarError(campo) {
     setErrores((prev) => {
@@ -107,9 +182,15 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
       nuevosErrores.numDoc = true
     }
 
-    // Validar celular (9 dígitos)
-    if (celular.trim() && !/^\d{9}$/.test(celular.trim())) {
-      nuevosErrores.celular = true
+    // Validar celular: 9 dígitos para Perú, mínimo 7 para internacionales
+    if (celular.trim()) {
+      if (codigoPais === '+51' && !/^\d{9}$/.test(celular.trim())) {
+        nuevosErrores.celular = true
+      } else if (codigoPais !== '+51' && codigoPais !== 'otro' && celular.trim().length < 7) {
+        nuevosErrores.celular = true
+      } else if (codigoPais === 'otro' && celular.trim().length < 7) {
+        nuevosErrores.celular = true
+      }
     }
 
     // Validar fechas en modo personalizado
@@ -141,7 +222,7 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
         }
       }
 
-      const nombrePlan = modoFecha === 'automatico' ? planes[plan].label.split(' ')[0] : 'Personalizado'
+      const nombrePlan = modoFecha === 'personalizado' ? 'Personalizado' : plan
       const [yi, mi, di] = fechaInicio.split('-')
       const [yf, mf, df] = fechaFin.split('-')
 
@@ -149,10 +230,13 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
       const nombreCompleto = `${nombre.trim()} ${apellido.trim()}`
       const codigoQR = generarCodigoQRUnico(nombreCompleto)
 
+      const codigoFinal = codigoPais === 'otro' ? codigoPersonalizado : codigoPais
+      const telefonoCompleto = celular ? `${codigoFinal} ${celular}`.trim() : ''
+
       agregarMiembro({
         dni: numDoc,
         nombre: nombreCompleto,
-        celular,
+        celular: telefonoCompleto,
         plan: nombrePlan,
         estado: 'activo',
         inicio: `${di}/${mi}/${yi}`,
@@ -168,7 +252,7 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
       })
 
       // Guardar datos para el modal de bienvenida QR (Paso 2)
-      setNuevoMiembroQR({ nombre: nombreCompleto, celular, codigoQR })
+      setNuevoMiembroQR({ nombre: nombreCompleto, celular: telefonoCompleto, codigoQR })
 
       if (monto) {
         agregarRegistro({
@@ -219,9 +303,9 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
     if (!nuevoMiembroQR) return
 
     const mensaje = `¡Hola *${nuevoMiembroQR.nombre}*! 👋\n\n¡Bienvenido a *TRAMUSA S.A.*!\n\nAdjunto a este mensaje te enviamos tu *Pase de Ingreso QR*. Por favor, muéstralo en recepción cada vez que vengas a entrenar.\n\n¡A darle con todo! 💪`
-    const celular = nuevoMiembroQR.celular ? `51${nuevoMiembroQR.celular}` : ''
-    const url = celular
-      ? `https://wa.me/${celular}?text=${encodeURIComponent(mensaje)}`
+    const numWA = nuevoMiembroQR.celular ? nuevoMiembroQR.celular.replace(/[^0-9]/g, '') : ''
+    const url = numWA
+      ? `https://wa.me/${numWA}?text=${encodeURIComponent(mensaje)}`
       : `https://wa.me/?text=${encodeURIComponent(mensaje)}`
     window.open(url, '_blank')
 
@@ -238,10 +322,12 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
     setTipoDoc('dni')
     setNumDoc('')
     setCelular('')
+    setCodigoPais('+51')
+    setCodigoPersonalizado('+')
     setContactoNombre('')
     setContactoTelefono('')
     setModoFecha('automatico')
-    setPlan('mensual')
+    setPlan('Mensual')
     setFechaInicio(formatDate(new Date()))
     setFechaFin('')
     setTurno('')
@@ -330,20 +416,47 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
               {errores.numDoc && <p className="text-xs text-red-500 mt-1">{!numDoc.trim() ? 'Campo obligatorio' : miembros.some(m => m.dni === numDoc.trim()) ? 'Este documento ya está registrado' : 'DNI debe tener 8 dígitos'}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">N° de Celular <span className="text-red-400">*</span></label>
-              <input
-                type="tel"
-                value={celular}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, '')
-                  setCelular(val)
-                  limpiarError('celular')
-                }}
-                maxLength={9}
-                placeholder="9 dígitos"
-                className={getClase('celular')}
-              />
-              {errores.celular && <p className="text-xs text-red-500 mt-1">{celular.trim() ? 'Debe tener 9 dígitos' : 'Campo obligatorio'}</p>}
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Telefono / WhatsApp <span className="text-red-400">*</span></label>
+              <div className={`flex rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-red-100 dark:focus-within:ring-red-500/20 focus-within:border-red-400 dark:focus-within:border-red-500 ${errores.celular ? 'border border-red-300 dark:border-red-500/30' : 'border border-slate-200 dark:border-slate-700'}`}>
+                <select
+                  value={codigoPais}
+                  onChange={(e) => setCodigoPais(e.target.value)}
+                  className="bg-slate-50 dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 py-2.5 px-2 border-r border-slate-200 dark:border-slate-700 focus:outline-none font-medium"
+                >
+                  {PAISES_CODIGOS.map((p) => (
+                    <option key={p.codigo} value={p.codigo}>
+                      {p.flag} {p.codigo !== 'otro' ? p.codigo : ''}
+                    </option>
+                  ))}
+                </select>
+                {codigoPais === 'otro' && (
+                  <input
+                    type="text"
+                    value={codigoPersonalizado}
+                    onChange={(e) => {
+                      let val = e.target.value.replace(/[^0-9+]/g, '')
+                      if (!val.startsWith('+')) val = '+' + val
+                      setCodigoPersonalizado(val)
+                    }}
+                    maxLength={5}
+                    className="w-16 px-2 py-2.5 bg-slate-50 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 focus:outline-none text-sm text-slate-700 dark:text-slate-200 font-medium text-center"
+                    placeholder="+00"
+                  />
+                )}
+                <input
+                  type="tel"
+                  value={celular}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '')
+                    setCelular(val)
+                    limpiarError('celular')
+                  }}
+                  maxLength={codigoPais === '+51' ? 9 : 15}
+                  placeholder={codigoPais === '+51' ? '999 888 777' : 'Numero de telefono'}
+                  className={`flex-1 text-sm text-slate-700 dark:text-slate-200 py-2.5 px-4 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none ${errores.celular ? 'bg-red-50 dark:bg-red-950' : 'bg-slate-50 dark:bg-slate-800'}`}
+                />
+              </div>
+              {errores.celular && <p className="text-xs text-red-500 mt-1">{celular.trim() ? 'Numero invalido' : 'Campo obligatorio'}</p>}
             </div>
           </div>
         </fieldset>
@@ -401,7 +514,7 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
               }`}
             >
-              Personalizado
+              Personalizado (completo)
             </button>
           </div>
 
@@ -409,10 +522,13 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
             {modoFecha === 'automatico' && (
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Plan</label>
-                <select value={plan} onChange={(e) => setPlan(e.target.value)} className={inputClasses}>
-                  {Object.entries(planes).map(([key, { label }]) => (
-                    <option key={key} value={key}>{label}</option>
+                <select value={plan} onChange={handleCambioPlan} className={inputClasses}>
+                  {planesActivos.map(p => (
+                    <option key={p.id} value={p.nombre}>
+                      {p.nombre} — S/ {p.precio.toFixed(2)}
+                    </option>
                   ))}
+                  <option value="Personalizado">Plan Personalizado (Manual)</option>
                 </select>
               </div>
             )}
@@ -461,8 +577,9 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
                 inputMode="numeric"
                 value={montoDisplay}
                 onChange={handleMontoChange}
+                readOnly={esPlanBloqueado}
                 placeholder="S/ 0.00"
-                className={getClase('monto')}
+                className={esPlanBloqueado ? inputReadOnly + ' font-bold text-lg' : getClase('monto')}
               />
               {errores.monto && <p className="text-xs text-red-500 mt-1">Ingresa el monto</p>}
             </div>

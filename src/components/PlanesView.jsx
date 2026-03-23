@@ -1,32 +1,48 @@
 import { useState } from 'react'
-import { Plus, Edit2, Power, CheckCircle2, X } from 'lucide-react'
+import { Plus, Edit2, Power, CheckCircle2, X, Trash2 } from 'lucide-react'
 import { inputClasses } from '../utils/constants'
 import { CurrencyInput } from './CurrencyInput'
+import { useGym } from '../context/GymContext'
 
 export default function PlanesView() {
-  const [planes, setPlanes] = useState([
-    { id: 1, nombre: 'Mensual', precio: 90, duracion: '1 mes', activo: true },
-    { id: 2, nombre: 'Trimestral', precio: 250, duracion: '3 meses', activo: true },
-    { id: 3, nombre: 'Semestral', precio: 450, duracion: '6 meses', activo: true },
-    { id: 4, nombre: 'Pase por Día', precio: 15, duracion: '1 día', activo: true },
-    { id: 5, nombre: 'Promo Verano VIP', precio: 160, duracion: '2 meses', activo: false },
-  ])
+  const { planes, agregarPlan, actualizarPlan, eliminarPlan, toggleActivoPlan } = useGym()
 
   const [mostrarModal, setMostrarModal] = useState(false)
   const [planEditando, setPlanEditando] = useState(null)
   const [formNombre, setFormNombre] = useState('')
   const [formPrecio, setFormPrecio] = useState('')
-  const [formDuracion, setFormDuracion] = useState('')
+  const [formDuracionNum, setFormDuracionNum] = useState(1)
+  const [formDuracionUnidad, setFormDuracionUnidad] = useState('meses')
+  const [formNotaPlan, setFormNotaPlan] = useState('')
+  const [esPromocion, setEsPromocion] = useState(false)
+  const [fechaInicioVenta, setFechaInicioVenta] = useState('')
+  const [fechaFinVenta, setFechaFinVenta] = useState('')
 
-  function toggleActivo(id) {
-    setPlanes(prev => prev.map(p => p.id === id ? { ...p, activo: !p.activo } : p))
+  function handleEliminarPlan(id, nombre) {
+    const confirmado = window.confirm(`ADVERTENCIA:\n\n¿Estás seguro de que deseas ELIMINAR permanentemente el plan "${nombre}"?\n\nEsta acción no se puede deshacer.`)
+    if (confirmado) {
+      eliminarPlan(id)
+    }
+  }
+
+  function extraerDuracion(duracionStr) {
+    const lower = (duracionStr || '').toLowerCase()
+    const num = parseInt(lower) || 1
+    if (lower.includes('día') || lower.includes('dia')) return { num, unidad: 'dias' }
+    if (lower.includes('año')) return { num, unidad: 'años' }
+    return { num, unidad: 'meses' }
   }
 
   function abrirModalCrear() {
     setPlanEditando(null)
     setFormNombre('')
     setFormPrecio('')
-    setFormDuracion('')
+    setFormDuracionNum(1)
+    setFormDuracionUnidad('meses')
+    setFormNotaPlan('')
+    setEsPromocion(false)
+    setFechaInicioVenta('')
+    setFechaFinVenta('')
     setMostrarModal(true)
   }
 
@@ -34,29 +50,63 @@ export default function PlanesView() {
     setPlanEditando(plan)
     setFormNombre(plan.nombre)
     setFormPrecio(String(plan.precio))
-    setFormDuracion(plan.duracion)
+    const { num, unidad } = extraerDuracion(plan.duracion)
+    setFormDuracionNum(num)
+    setFormDuracionUnidad(unidad)
+    setFormNotaPlan(plan.nota || '')
+    setEsPromocion(plan.esPromocion || false)
+    setFechaInicioVenta(plan.fechaInicioVenta || '')
+    setFechaFinVenta(plan.fechaFinVenta || '')
     setMostrarModal(true)
   }
 
+  function calcularDiasNetos(num, unidad) {
+    const n = parseInt(num) || 0
+    if (unidad === 'dias') return n
+    if (unidad === 'meses') return n * 30
+    if (unidad === 'años') return n * 365
+    return n
+  }
+
+  function calcularMeses(num, unidad) {
+    const n = parseInt(num) || 0
+    if (unidad === 'dias') return 0
+    if (unidad === 'meses') return n
+    if (unidad === 'años') return n * 12
+    return 0
+  }
+
+  function formatearDuracionVisual(num, unidad) {
+    const n = parseInt(num) || 0
+    const labels = { dias: n === 1 ? 'día' : 'días', meses: n === 1 ? 'mes' : 'meses', años: n === 1 ? 'año' : 'años' }
+    return `${n} ${labels[unidad] || unidad}`
+  }
+
   function guardarPlan() {
-    if (!formNombre.trim() || !formPrecio || !formDuracion.trim()) return
+    const num = parseInt(formDuracionNum) || 0
+    if (!formNombre.trim() || !formPrecio || num < 1) return
 
     const precio = parseFloat(formPrecio) || 0
+    const duracion = formatearDuracionVisual(num, formDuracionUnidad)
+    const meses = calcularMeses(num, formDuracionUnidad)
+    const duracionDias = calcularDiasNetos(num, formDuracionUnidad)
+
+    const datosPlan = {
+      nombre: formNombre.trim(),
+      precio,
+      duracion,
+      meses,
+      duracionDias,
+      nota: formNotaPlan.trim() || undefined,
+      esPromocion,
+      fechaInicioVenta: esPromocion ? fechaInicioVenta : null,
+      fechaFinVenta: esPromocion ? fechaFinVenta : null,
+    }
 
     if (planEditando) {
-      setPlanes(prev => prev.map(p =>
-        p.id === planEditando.id
-          ? { ...p, nombre: formNombre.trim(), precio, duracion: formDuracion.trim() }
-          : p
-      ))
+      actualizarPlan(planEditando.id, datosPlan)
     } else {
-      setPlanes(prev => [...prev, {
-        id: Date.now(),
-        nombre: formNombre.trim(),
-        precio,
-        duracion: formDuracion.trim(),
-        activo: true,
-      }])
+      agregarPlan(datosPlan)
     }
 
     setMostrarModal(false)
@@ -114,7 +164,7 @@ export default function PlanesView() {
             </p>
 
             {/* Acciones */}
-            <div className="mt-auto flex items-center gap-3">
+            <div className="mt-auto flex items-center gap-2">
               <button
                 onClick={() => abrirModalEditar(plan)}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-sm rounded-xl transition-colors"
@@ -123,7 +173,7 @@ export default function PlanesView() {
                 Editar
               </button>
               <button
-                onClick={() => toggleActivo(plan.id)}
+                onClick={() => toggleActivoPlan(plan.id)}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 font-semibold text-sm rounded-xl transition-colors ${
                   plan.activo
                     ? 'bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 text-amber-600 dark:text-amber-400'
@@ -132,6 +182,13 @@ export default function PlanesView() {
               >
                 <Power size={15} />
                 {plan.activo ? 'Desactivar' : 'Activar'}
+              </button>
+              <button
+                onClick={() => handleEliminarPlan(plan.id, plan.nombre)}
+                className="bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-500 dark:text-red-400 font-bold p-2.5 rounded-xl flex items-center justify-center transition-colors"
+                title="Eliminar Plan"
+              >
+                <Trash2 size={18} />
               </button>
             </div>
           </div>
@@ -178,17 +235,74 @@ export default function PlanesView() {
                 <CurrencyInput value={formPrecio} onChange={setFormPrecio} />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                  Duración
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Duración y Detalles
                 </label>
-                <input
-                  type="text"
-                  value={formDuracion}
-                  onChange={(e) => setFormDuracion(e.target.value)}
-                  placeholder="Ej: 1 mes, 3 meses, 1 día"
-                  className={inputClasses}
-                />
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="number"
+                    min="1"
+                    value={formDuracionNum}
+                    onChange={(e) => setFormDuracionNum(e.target.value)}
+                    className={`${inputClasses} w-full sm:w-1/4 font-bold`}
+                    placeholder="Ej: 4"
+                  />
+                  <select
+                    value={formDuracionUnidad}
+                    onChange={(e) => setFormDuracionUnidad(e.target.value)}
+                    className={`${inputClasses} w-full sm:w-1/4 font-medium`}
+                  >
+                    <option value="dias">Días</option>
+                    <option value="meses">Meses</option>
+                    <option value="años">Años</option>
+                  </select>
+                  <input
+                    type="text"
+                    value={formNotaPlan}
+                    onChange={(e) => setFormNotaPlan(e.target.value)}
+                    className={`${inputClasses} w-full sm:w-2/4`}
+                    placeholder="Nota (opcional)"
+                  />
+                </div>
+              </div>
+
+              {/* SECCIÓN: VIGENCIA DE VENTA (PROMOCIONES) */}
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                <label className="flex items-center gap-3 cursor-pointer mb-3">
+                  <input
+                    type="checkbox"
+                    checked={esPromocion}
+                    onChange={(e) => setEsPromocion(e.target.checked)}
+                    className="w-5 h-5 text-blue-600 rounded border-slate-300 dark:border-slate-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                  />
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                    Es una Promoción (Tiempo limitado de venta)
+                  </span>
+                </label>
+
+                {esPromocion && (
+                  <div className="flex gap-3 bg-blue-50/50 dark:bg-blue-500/5 p-4 rounded-xl border border-blue-100 dark:border-blue-500/20">
+                    <div className="flex-1">
+                      <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Válido Desde</label>
+                      <input
+                        type="date"
+                        value={fechaInicioVenta}
+                        onChange={(e) => setFechaInicioVenta(e.target.value)}
+                        className={inputClasses}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">Válido Hasta</label>
+                      <input
+                        type="date"
+                        value={fechaFinVenta}
+                        onChange={(e) => setFechaFinVenta(e.target.value)}
+                        className={inputClasses}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -204,7 +318,7 @@ export default function PlanesView() {
               <button
                 type="button"
                 onClick={guardarPlan}
-                disabled={!formNombre.trim() || !formPrecio || !formDuracion.trim()}
+                disabled={!formNombre.trim() || !formPrecio || (parseInt(formDuracionNum) || 0) < 1}
                 className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-xl py-2.5 px-6 font-semibold text-sm transition-colors"
               >
                 Guardar Cambios
