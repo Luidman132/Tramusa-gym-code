@@ -1,11 +1,9 @@
 import { useState } from 'react'
 import { Dumbbell, Lock, Mail, ArrowRight } from 'lucide-react'
-import { useToast } from '../context/ToastContext'
 
 
 
 export default function LoginView({ onLogin }) {
-  const { mostrarToast } = useToast()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -16,10 +14,26 @@ export default function LoginView({ onLogin }) {
     setError('')
     setIsLoading(true)
 
-    // TODO: Aquí irá la lógica de supabase.auth.signInWithPassword()
-    // Bypass temporal para no bloquear el desarrollo:
-    alert('Preparando conexión con Supabase Auth...')
-    setIsLoading(false)
+    try {
+      const response = await fetch('http://localhost:8888/tramusagym-api/login.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correo: email, password })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        onLogin(data.usuario)
+      } else {
+        setError(data.mensaje || 'Correo o contraseña incorrectos')
+      }
+    } catch (err) {
+      console.error('Error conectando con la API:', err)
+      setError('Error de conexión con el servidor. Verifica que MAMP esté encendido.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (

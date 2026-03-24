@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react'
-import { Search, UserCircle, UserPlus, ArrowRight, CheckCircle, Pencil, Ticket, QrCode } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Search, UserCircle, UserPlus, ArrowRight, CheckCircle, Pencil, Ticket, QrCode, X, Download } from 'lucide-react'
+import QRCode from 'react-qr-code'
+import { toPng } from 'html-to-image'
 import { formatHora, parseMonto } from '../utils/helpers'
 import { inputClasses, inputErrorClasses, estilosEstado } from '../utils/constants'
 import { useToast } from '../context/ToastContext'
@@ -13,12 +15,12 @@ import { AsistenciaQRScanner } from './AsistenciaQRScanner'
 
 export default function RegistrarAsistenciaView({ usuario, miembroPreSeleccionado, setMiembroPreSeleccionado }) {
   const { mostrarToast } = useToast()
-  const { miembros, historial, actualizarMiembro, agregarRegistro, actualizarRegistro, eliminarRegistro } = useGym()
+  const { miembros, historial, actualizarMiembro, agregarRegistro, actualizarRegistro, eliminarRegistro, fetchMiembros, fetchHistorial } = useGym()
 
   const [busqueda, setBusqueda] = useState('')
   const [resultadosBusqueda, setResultadosBusqueda] = useState([])
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null)
-  const [filtroTiempo, setFiltroTiempo] = useState('hoy')
+  const [filtroTiempo, setFiltroTiempo] = useState('todos')
 
   // Visita libre
   const [mostrandoPaseRapido, setMostrandoPaseRapido] = useState(false)
@@ -38,6 +40,11 @@ export default function RegistrarAsistenciaView({ usuario, miembroPreSeleccionad
   const [registroAEditar, setRegistroAEditar] = useState(null)
   const [mostrarScanner, setMostrarScanner] = useState(false)
   const [alertaExito, setAlertaExito] = useState(null)
+
+  // Resumen Visita Libre (nuevo flujo estandarizado)
+  const [resumenVisita, setResumenVisita] = useState(null)
+  const [mostrarPaseVisita, setMostrarPaseVisita] = useState(false)
+  const qrVisitaRef = useRef(null)
 
   useEffect(() => {
     if (miembroPreSeleccionado) {
@@ -144,6 +151,17 @@ export default function RegistrarAsistenciaView({ usuario, miembroPreSeleccionad
       celular: celularVisita,
       correo: correoVisita,
     })
+
+    // Abrir Resumen de Visita
+    setResumenVisita({
+      nombre: `${nombresVisita.trim()} ${apellidosVisita.trim()}`,
+      dni: dniVisita || 'No registrado',
+      celular: celularVisita || null,
+      correo: correoVisita || null,
+      monto: monto.toFixed(2),
+      fecha: new Date().toLocaleDateString('es-PE'),
+    })
+
     mostrarToast(`Visita libre registrada: ${nombresVisita.trim()} ${apellidosVisita.trim()}`)
     resetFormularioVisita()
   }
@@ -220,46 +238,43 @@ export default function RegistrarAsistenciaView({ usuario, miembroPreSeleccionad
     setRegistroAEditar(null)
   }
 
-  function procesarQR(codigoQR) {
-    setMostrarScanner(false)
+  async function procesarQR(qrToken) {
+    if (!qrToken) return
 
-    const miembroEncontrado = miembros.find(m => m.codigoQR === codigoQR)
+    try {
+      const response = await fetch('http://localhost:8888/tramusagym-api/registrar_asistencia.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qr_token: qrToken })
+      })
 
-    if (miembroEncontrado) {
-      if (miembroEncontrado.estado === 'vencido') {
-        mostrarToast(`El plan de ${miembroEncontrado.nombre} está vencido. Debe renovar.`, 'error')
-        seleccionarCliente(miembroEncontrado)
-      } else if (miembroEncontrado.estado === 'pase_activo') {
-        const nuevosDias = miembroEncontrado.diasRestantes - 1
-        agregarRegistro({
-          tipo: 'asistencia',
-          titulo: miembroEncontrado.nombre,
-          detalle: `Pase QR: Dias restantes ${nuevosDias}`,
-        })
-        if (nuevosDias <= 0) {
-          actualizarMiembro(miembroEncontrado.id, { estado: 'vencido', diasRestantes: 0 })
-        } else {
-          actualizarMiembro(miembroEncontrado.id, { diasRestantes: nuevosDias })
-        }
+      const data = await response.json()
+
+      if (data.success) {
+        // Recargar datos para reflejar cambios
+        await fetchMiembros()
+        await fetchHistorial()
+
         setAlertaExito({
-          nombre: miembroEncontrado.nombre,
+          nombre: data.nombre || 'Miembro',
           hora: new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
         })
         setTimeout(() => setAlertaExito(null), 3500)
+        setMostrarScanner(false)
       } else {
-        agregarRegistro({
-          tipo: 'asistencia',
-          titulo: miembroEncontrado.nombre,
-          detalle: `Plan: ${miembroEncontrado.plan} (QR)`,
-        })
-        setAlertaExito({
-          nombre: miembroEncontrado.nombre,
-          hora: new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
-        })
-        setTimeout(() => setAlertaExito(null), 3500)
+        mostrarToast(data.mensaje || 'Error al registrar asistencia', 'error')
+        // Si el miembro existe pero tiene plan vencido, seleccionarlo para renovación
+        if (data.miembro_id) {
+          const miembroEncontrado = miembros.find(m => m.id === Number(data.miembro_id))
+          if (miembroEncontrado) {
+            seleccionarCliente(miembroEncontrado)
+            setMostrarScanner(false)
+          }
+        }
       }
-    } else {
-      mostrarToast('Código QR no reconocido o cliente no existe.', 'error')
+    } catch (error) {
+      console.error("Error de conexión:", error)
+      mostrarToast('Error de conexión con el servidor', 'error')
     }
   }
 
@@ -481,6 +496,7 @@ export default function RegistrarAsistenciaView({ usuario, miembroPreSeleccionad
                 onChange={(e) => setFiltroTiempo(e.target.value)}
                 className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm rounded-lg focus:ring-red-100 dark:focus:ring-red-500/20 focus:border-red-400 py-1.5 px-3 outline-none cursor-pointer"
               >
+                <option value="todos">Todos</option>
                 <option value="hoy">Hoy</option>
                 <option value="ayer">Ayer</option>
                 <option value="1semana">Hace 1 semana</option>
@@ -575,6 +591,67 @@ export default function RegistrarAsistenciaView({ usuario, miembroPreSeleccionad
               <p className="text-emerald-600 font-bold text-sm uppercase tracking-widest mb-2">Asistencia Registrada</p>
               <p className="text-2xl font-bold text-slate-800 tracking-tight mb-2">{alertaExito.nombre}</p>
               <p className="text-slate-500 font-medium">Hora de ingreso: {alertaExito.hora}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* MODAL RESUMEN DE VISITA LIBRE */}
+      {resumenVisita && !mostrarPaseVisita && (
+        <div className="fixed inset-0 z-90 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-4xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col border border-transparent dark:border-slate-800 max-h-[90vh]">
+
+            {/* Cabecera */}
+            <div className="p-6 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10 border-b border-slate-100 dark:border-slate-800 text-center relative shrink-0">
+              <button
+                onClick={() => setResumenVisita(null)}
+                className="absolute top-4 right-4 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 bg-white dark:bg-slate-800 rounded-full p-1 shadow-sm cursor-pointer transition-colors"
+              >
+                <X size={20} />
+              </button>
+              <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                <CheckCircle size={36} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">¡Visita Libre Registrada!</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Resumen del acceso temporal</p>
+            </div>
+
+            {/* Contenido */}
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+              {/* Datos del Visitante */}
+              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
+                <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Datos del Visitante</h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-slate-400 dark:text-slate-500 text-xs">Nombre</span><p className="font-semibold text-slate-800 dark:text-slate-100">{resumenVisita.nombre}</p></div>
+                  <div><span className="text-slate-400 dark:text-slate-500 text-xs">DNI</span><p className="font-semibold text-slate-800 dark:text-slate-100">{resumenVisita.dni}</p></div>
+                  {resumenVisita.celular && <div><span className="text-slate-400 dark:text-slate-500 text-xs">Celular</span><p className="font-semibold text-slate-800 dark:text-slate-100">{resumenVisita.celular}</p></div>}
+                  {resumenVisita.correo && <div><span className="text-slate-400 dark:text-slate-500 text-xs">Correo</span><p className="font-semibold text-slate-800 dark:text-slate-100">{resumenVisita.correo}</p></div>}
+                </div>
+              </div>
+
+              {/* Acceso */}
+              <div className="bg-blue-50 dark:bg-blue-500/10 rounded-2xl p-4 border border-blue-100 dark:border-blue-500/20">
+                <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-3">Acceso</h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-blue-400 dark:text-blue-400/60 text-xs">Tipo</span><p className="font-semibold text-slate-800 dark:text-slate-100">Visita Libre (1 día)</p></div>
+                  <div><span className="text-blue-400 dark:text-blue-400/60 text-xs">Fecha</span><p className="font-semibold text-slate-800 dark:text-slate-100">{resumenVisita.fecha}</p></div>
+                </div>
+              </div>
+
+              {/* Monto */}
+              <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-500/20 text-center">
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">Monto Pagado</span>
+                <p className="text-3xl font-black text-emerald-700 dark:text-emerald-300 mt-1">S/ {resumenVisita.monto}</p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 shrink-0">
+              <button
+                onClick={() => setResumenVisita(null)}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-xl transition-colors shadow-sm text-base cursor-pointer"
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>

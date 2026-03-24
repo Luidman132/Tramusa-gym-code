@@ -40,7 +40,7 @@ export function ToastProvider({ children }) {
     <ToastContext.Provider value={{ mostrarToast }}>
       {children}
 
-      <div className="fixed top-6 right-6 z-[100] space-y-3 pointer-events-none">
+      <div className="fixed top-6 right-6 z-100 space-y-3 pointer-events-none">
         {toasts.map((toast) => {
           const Icono = iconos[toast.tipo]
           return (

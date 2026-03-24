@@ -3,16 +3,22 @@ import { Users, CalendarCheck, AlertTriangle, CircleDollarSign, UserPlus, ScanLi
 import { useGym } from '../context/GymContext'
 import { formatHora } from '../utils/helpers'
 
-function parseFechaDDMMYYYY(fechaStr) {
-  const [d, m, y] = fechaStr.split('/')
-  return new Date(parseInt(y), parseInt(m) - 1, parseInt(d))
-}
-
 function diasHastaVencimiento(fechaFinStr) {
+  if (!fechaFinStr) return -1
   const hoy = new Date()
   hoy.setHours(0, 0, 0, 0)
-  const fechaFin = parseFechaDDMMYYYY(fechaFinStr)
-  fechaFin.setHours(0, 0, 0, 0)
+
+  // Parseo seguro: soporta YYYY-MM-DD y DD/MM/YYYY
+  const limpio = fechaFinStr.split(' ')[0]
+  let year, month, day
+  if (limpio.includes('-')) {
+    ;[year, month, day] = limpio.split('-')
+  } else if (limpio.includes('/')) {
+    ;[day, month, year] = limpio.split('/')
+  } else {
+    return -1
+  }
+  const fechaFin = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
   return Math.ceil((fechaFin - hoy) / (1000 * 60 * 60 * 24))
 }
 

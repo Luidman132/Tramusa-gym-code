@@ -11,28 +11,31 @@ import ConfiguracionView from './components/ConfiguracionView'
 import LoginView from './components/LoginView'
 
 function App() {
-  const [usuario, setUsuario] = useState(null)
-  const [vistaActiva, setVistaActiva] = useState('Inicio')
+  const [usuario, setUsuario] = useState(() => {
+    const saved = localStorage.getItem('tramusa_usuario')
+    return saved ? JSON.parse(saved) : null
+  })
+  const [vistaActiva, setVistaActiva] = useState(() => {
+    return localStorage.getItem('tramusa_vista') || 'Inicio'
+  })
   const [miembroPreSeleccionado, setMiembroPreSeleccionado] = useState(null)
 
-  // Recuperar sesión persistente al recargar
+  // Guardar vista activa en localStorage cada vez que cambie
   useEffect(() => {
-    const saved = localStorage.getItem('tramusa_user_temp')
-    if (saved) {
-      setUsuario(JSON.parse(saved))
-    }
-  }, [])
+    localStorage.setItem('tramusa_vista', vistaActiva)
+  }, [vistaActiva])
 
   function handleLogin(userData) {
     setUsuario(userData)
     setVistaActiva('Inicio')
-    localStorage.setItem('tramusa_user_temp', JSON.stringify(userData))
+    localStorage.setItem('tramusa_usuario', JSON.stringify(userData))
   }
 
   function handleLogout() {
     setUsuario(null)
     setVistaActiva('Inicio')
-    localStorage.removeItem('tramusa_user_temp')
+    localStorage.removeItem('tramusa_usuario')
+    localStorage.removeItem('tramusa_vista')
   }
 
   if (!usuario) {

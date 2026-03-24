@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
-import { ArrowLeft, UserPlus, Download, Send, X, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, UserPlus, Download, Send, X, AlertTriangle, CheckCircle, User, CalendarDays, ShieldCheck, CreditCard } from 'lucide-react'
 import QRCode from 'react-qr-code'
 import { toPng } from 'html-to-image'
 import { formatDate, addMonths } from '../utils/helpers'
 import { inputClasses, inputErrorClasses, inputReadOnly } from '../utils/constants'
 import { useToast } from '../context/ToastContext'
 import { useGym } from '../context/GymContext'
-import { TicketWhatsApp } from './TicketWhatsApp'
+
 
 const PAISES_CODIGOS = [
   { codigo: '+51', pais: 'Peru', flag: '\u{1F1F5}\u{1F1EA}' },
@@ -63,10 +63,11 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
   const [celular, setCelular] = useState('')
   const [codigoPais, setCodigoPais] = useState('+51')
   const [codigoPersonalizado, setCodigoPersonalizado] = useState('+')
+  const [email, setEmail] = useState('')
   const [contactoNombre, setContactoNombre] = useState('')
   const [contactoTelefono, setContactoTelefono] = useState('')
   const [modoFecha, setModoFecha] = useState('automatico')
-  const [plan, setPlan] = useState('Mensual')
+  const [plan, setPlan] = useState('')
   const [fechaInicio, setFechaInicio] = useState(formatDate(new Date()))
   const [fechaFin, setFechaFin] = useState('')
   const [turno, setTurno] = useState('')
@@ -133,32 +134,41 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
   const [deposito, setDeposito] = useState('')
 
   const [errores, setErrores] = useState({})
-  const [ticketExito, setTicketExito] = useState(null)
+  const [resumenInscripcion, setResumenInscripcion] = useState(null)
 
   // Flujo de bienvenida QR (Paso 2)
   const [nuevoMiembroQR, setNuevoMiembroQR] = useState(null)
   const [mostrarAlertaWA, setMostrarAlertaWA] = useState(false)
   const qrBienvenidaRef = useRef(null)
 
+  // Seleccionar el primer plan disponible cuando cargan los datos de la BD
   useEffect(() => {
-    if (modoFecha === 'automatico') {
-      const hoyStr = formatDate(new Date())
-      setFechaInicio(hoyStr)
-      const planObj = planesActivos.find(p => p.nombre === plan)
-      if (planObj) {
-        if (planObj.duracionDias) {
-          setFechaFin(calcularFechaFin(hoyStr, planObj.duracionDias))
-        } else if (planObj.meses > 0) {
-          setFechaFin(formatDate(addMonths(new Date(), planObj.meses)))
-        } else {
-          const manana = new Date()
-          manana.setDate(manana.getDate() + 1)
-          setFechaFin(formatDate(manana))
-        }
-        autoFillMonto(planObj.precio)
-      }
+    if (planesActivos.length > 0 && !plan) {
+      setPlan(planesActivos[0].nombre)
     }
-  }, [modoFecha, plan, planesActivos.length])
+  }, [planesActivos])
+
+  // Recalcular precio y fechaFin cada vez que cambie plan, fechaInicio o modo
+  useEffect(() => {
+    if (modoFecha !== 'automatico' || !plan || planesActivos.length === 0) return
+
+    const planObj = planesActivos.find(p => p.nombre === plan)
+    if (!planObj) return
+
+    // Auto-completar precio
+    autoFillMonto(planObj.precio)
+
+    // Auto-calcular fecha fin
+    const base = fechaInicio || formatDate(new Date())
+    if (planObj.duracionDias) {
+      const fechaObj = new Date(base + 'T00:00:00')
+      fechaObj.setDate(fechaObj.getDate() + Number(planObj.duracionDias))
+      const yyyy = fechaObj.getFullYear()
+      const mm = String(fechaObj.getMonth() + 1).padStart(2, '0')
+      const dd = String(fechaObj.getDate()).padStart(2, '0')
+      setFechaFin(`${yyyy}-${mm}-${dd}`)
+    }
+  }, [plan, fechaInicio, modoFecha, planesActivos])
 
   function limpiarError(campo) {
     setErrores((prev) => {
@@ -204,79 +214,77 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
     return Object.keys(nuevosErrores).length === 0
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     if (!validar()) {
       mostrarToast('Completa los campos obligatorios correctamente', 'error')
       return
     }
 
-    try {
-      // Verificar si el documento ya está registrado
-      if (numDoc.trim()) {
-        const miembroExistente = miembros.find((m) => m.dni === numDoc.trim())
-        if (miembroExistente) {
-          mostrarToast(`Error: El documento ${numDoc} ya está registrado a nombre de ${miembroExistente.nombre}.`, 'error')
-          setErrores((prev) => ({ ...prev, numDoc: true }))
-          return
-        }
+    // Verificar si el documento ya está registrado
+    if (numDoc.trim()) {
+      const miembroExistente = miembros.find((m) => m.dni === numDoc.trim())
+      if (miembroExistente) {
+        mostrarToast(`Error: El documento ${numDoc} ya está registrado a nombre de ${miembroExistente.nombre}.`, 'error')
+        setErrores((prev) => ({ ...prev, numDoc: true }))
+        return
       }
+    }
 
-      const nombrePlan = modoFecha === 'personalizado' ? 'Personalizado' : plan
-      const [yi, mi, di] = fechaInicio.split('-')
-      const [yf, mf, df] = fechaFin.split('-')
+    const esPersonalizado = modoFecha === 'personalizado'
+    const nombrePlan = esPersonalizado ? null : plan
+    const nombreCompleto = `${nombre.trim()} ${apellido.trim()}`
+    const codigoFinal = codigoPais === 'otro' ? codigoPersonalizado : codigoPais
+    const telefonoCompleto = celular ? `${codigoFinal} ${celular}`.trim() : ''
 
-      // FIX: Declarar nombreCompleto ANTES de usarlo en generarCodigoQRUnico
-      const nombreCompleto = `${nombre.trim()} ${apellido.trim()}`
-      const codigoQR = generarCodigoQRUnico(nombreCompleto)
+    // Enviar fechas directamente en YYYY-MM-DD (formato ISO que ya tienen los inputs)
+    const resultado = await agregarMiembro({
+      dni: numDoc,
+      nombre: nombreCompleto,
+      celular: telefonoCompleto,
+      email: email.trim() || undefined,
+      plan: nombrePlan,
+      estado: 'activo',
+      fechaInicio,
+      fechaFin,
+      contactoNombre: contactoNombre || undefined,
+      contactoTelefono: contactoTelefono || undefined,
+      turno: turno || undefined,
+    })
 
-      const codigoFinal = codigoPais === 'otro' ? codigoPersonalizado : codigoPais
-      const telefonoCompleto = celular ? `${codigoFinal} ${celular}`.trim() : ''
+    // SOLO si el backend confirmó éxito
+    if (!resultado || !resultado.success) return
 
-      agregarMiembro({
-        dni: numDoc,
-        nombre: nombreCompleto,
-        celular: telefonoCompleto,
-        plan: nombrePlan,
-        estado: 'activo',
-        inicio: `${di}/${mi}/${yi}`,
-        fin: `${df}/${mf}/${yf}`,
-        contactoNombre: contactoNombre || undefined,
-        contactoTelefono: contactoTelefono || undefined,
-        turno: turno || undefined,
-        codigoQR,
-        otros: otros || undefined,
+    // Usar el qr_token real que generó el backend (PHP uniqid)
+    const qrTokenReal = resultado.data.qr_token || generarCodigoQRUnico(nombreCompleto)
+
+    if (monto) {
+      agregarRegistro({
+        tipo: 'cobro',
+        titulo: `Inscripcion: ${nombre.trim()} ${apellido.trim()}`,
+        detalle: `Plan: ${nombrePlan || 'Personalizado'} - Pago: S/ ${parseFloat(monto).toFixed(2)}`,
         recibo: recibo || undefined,
         boleta: boleta || undefined,
         deposito: deposito || undefined,
       })
-
-      // Guardar datos para el modal de bienvenida QR (Paso 2)
-      setNuevoMiembroQR({ nombre: nombreCompleto, celular: telefonoCompleto, codigoQR })
-
-      if (monto) {
-        agregarRegistro({
-          tipo: 'cobro',
-          titulo: `Inscripcion: ${nombre.trim()} ${apellido.trim()}`,
-          detalle: `Plan: ${nombrePlan} - Pago: S/ ${parseFloat(monto).toFixed(2)}`,
-          recibo: recibo || undefined,
-          boleta: boleta || undefined,
-          deposito: deposito || undefined,
-        })
-      }
-
-      mostrarToast(`${nombre.trim()} ${apellido.trim()} inscrito correctamente`)
-
-      setTicketExito({
-        cliente: `${nombre.trim()} ${apellido.trim()}`,
-        operacion: `Inscripción: ${nombrePlan}`,
-        monto: parseFloat(monto).toFixed(2),
-        fecha: new Date().toLocaleDateString('es-PE'),
-      })
-    } catch (error) {
-      console.error('🚨 ERROR CRÍTICO AL REGISTRAR:', error)
-      alert(`Ocurrió un error al guardar: ${error.message}. Revisa la consola (F12) para más detalles.`)
     }
+
+    mostrarToast(`${nombre.trim()} ${apellido.trim()} inscrito correctamente`)
+
+    // Abrir el Resumen de Inscripción con todos los datos guardados
+    setResumenInscripcion({
+      nombreCompleto,
+      dni: numDoc,
+      celular: telefonoCompleto,
+      email: email.trim() || null,
+      contactoNombre: contactoNombre.trim() || null,
+      contactoTelefono: contactoTelefono.trim() || null,
+      plan: nombrePlan || 'Personalizado',
+      fechaInicio,
+      fechaFin,
+      monto: parseFloat(monto).toFixed(2),
+      qrToken: qrTokenReal,
+    })
   }
 
   // --- Funciones del flujo de bienvenida QR ---
@@ -312,9 +320,18 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
     setMostrarAlertaWA(false)
   }
 
+  const confirmarResumenYGenerarPase = () => {
+    if (!resumenInscripcion) return
+    // Cerrar resumen y abrir el Pase de Ingreso
+    const { nombreCompleto, celular: cel, qrToken } = resumenInscripcion
+    setResumenInscripcion(null)
+    setNuevoMiembroQR({ nombre: nombreCompleto, celular: cel, codigoQR: qrToken })
+  }
+
   const cerrarFlujoBienvenida = () => {
-    // 1. Cerrar modal QR
+    // 1. Cerrar modales
     setNuevoMiembroQR(null)
+    setResumenInscripcion(null)
 
     // 2. Limpiar formulario completo
     setNombre('')
@@ -324,10 +341,11 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
     setCelular('')
     setCodigoPais('+51')
     setCodigoPersonalizado('+')
+    setEmail('')
     setContactoNombre('')
     setContactoTelefono('')
     setModoFecha('automatico')
-    setPlan('Mensual')
+    setPlan(planesActivos.length > 0 ? planesActivos[0].nombre : '')
     setFechaInicio(formatDate(new Date()))
     setFechaFin('')
     setTurno('')
@@ -458,6 +476,18 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
               </div>
               {errores.celular && <p className="text-xs text-red-500 mt-1">{celular.trim() ? 'Numero invalido' : 'Campo obligatorio'}</p>}
             </div>
+
+            {/* Correo Electrónico */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Correo Electrónico <span className="text-slate-400 font-normal">(opcional)</span></label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="correo@ejemplo.com"
+                className={inputClasses}
+              />
+            </div>
           </div>
         </fieldset>
 
@@ -497,22 +527,20 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
             <button
               type="button"
               onClick={() => setModoFecha('automatico')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                modoFecha === 'automatico'
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${modoFecha === 'automatico'
                   ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-              }`}
+                }`}
             >
               Automático (Planes)
             </button>
             <button
               type="button"
               onClick={() => setModoFecha('personalizado')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                modoFecha === 'personalizado'
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${modoFecha === 'personalizado'
                   ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-sm'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-              }`}
+                }`}
             >
               Personalizado (completo)
             </button>
@@ -612,20 +640,125 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
         </div>
       </form>
 
-      {/* COMPROBANTE ELECTRÓNICO (Paso 1) */}
-      {ticketExito && (
-        <TicketWhatsApp
-          ticket={ticketExito}
-          onClose={() => {
-            setTicketExito(null)
-          }}
-        />
+      {/* MODAL DE RESUMEN DE INSCRIPCIÓN (Paso 1) */}
+      {resumenInscripcion && (
+        <div className="fixed inset-0 z-90 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-4xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col border border-transparent dark:border-slate-800 max-h-[90vh]">
+
+            {/* Cabecera */}
+            <div className="p-6 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10 border-b border-slate-100 dark:border-slate-800 text-center relative shrink-0">
+              <button
+                onClick={() => setResumenInscripcion(null)}
+                className="absolute top-4 right-4 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 bg-white dark:bg-slate-800 rounded-full p-1 shadow-sm cursor-pointer transition-colors"
+              >
+                <X size={20} />
+              </button>
+              <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                <CheckCircle size={36} />
+              </div>
+              <h2 className="font-black text-slate-800 dark:text-slate-100 text-2xl tracking-tight">¡Inscripción Exitosa!</h2>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Verifica los datos antes de generar el pase.</p>
+            </div>
+
+            {/* Contenido scrollable */}
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+
+              {/* Información Personal */}
+              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-700/50">
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200/60 dark:border-slate-700/50">
+                  <User size={16} className="text-red-500" />
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Información Personal</span>
+                </div>
+                <div className="space-y-2.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Nombre Completo</span>
+                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{resumenInscripcion.nombreCompleto}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">DNI</span>
+                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{resumenInscripcion.dni}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Celular</span>
+                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{resumenInscripcion.celular || '—'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Correo Electrónico</span>
+                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{resumenInscripcion.email || '—'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contacto de Emergencia */}
+              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-700/50">
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200/60 dark:border-slate-700/50">
+                  <ShieldCheck size={16} className="text-amber-500" />
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Contacto de Emergencia</span>
+                </div>
+                <div className="space-y-2.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Nombre</span>
+                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{resumenInscripcion.contactoNombre || '—'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Teléfono</span>
+                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{resumenInscripcion.contactoTelefono || '—'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Plan y Fechas */}
+              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-700/50">
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200/60 dark:border-slate-700/50">
+                  <CalendarDays size={16} className="text-blue-500" />
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Información del Plan</span>
+                </div>
+                <div className="space-y-2.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Plan</span>
+                    <span className="text-sm font-semibold text-red-600 dark:text-red-400">{resumenInscripcion.plan}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Fecha Inicio</span>
+                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{resumenInscripcion.fechaInicio}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Fecha Fin</span>
+                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{resumenInscripcion.fechaFin}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Monto */}
+              <div className="flex justify-between items-center bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl p-4 border border-emerald-100 dark:border-emerald-500/20">
+                <div className="flex items-center gap-2">
+                  <CreditCard size={16} className="text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">Monto Pagado</span>
+                </div>
+                <span className="text-xl font-black text-emerald-700 dark:text-emerald-300 tracking-tight">S/ {resumenInscripcion.monto}</span>
+              </div>
+
+            </div>
+
+            {/* Botón de acción */}
+            <div className="p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 shrink-0">
+              <button
+                onClick={confirmarResumenYGenerarPase}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2.5 transition-colors shadow-lg shadow-red-600/20 cursor-pointer text-base"
+              >
+                <UserPlus size={20} />
+                Confirmar y Generar Pase
+              </button>
+            </div>
+
+          </div>
+        </div>
       )}
 
-      {/* MODAL DE BIENVENIDA Y ENTREGA DE QR (Paso 2) */}
-      {nuevoMiembroQR && !ticketExito && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-transparent dark:border-slate-800">
+      {/* MODAL DE PASE DE INGRESO - ENTREGA DE QR (Paso 2) */}
+      {nuevoMiembroQR && !resumenInscripcion && (
+        <div className="fixed inset-0 z-90 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-4xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-transparent dark:border-slate-800">
 
             {/* Cabecera */}
             <div className="p-6 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 text-center relative">
@@ -682,7 +815,7 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
 
       {/* MODAL MINIMALISTA DE ADVERTENCIA WHATSAPP */}
       {mostrarAlertaWA && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden p-6 text-center border border-transparent dark:border-slate-800">
 
             <div className="w-16 h-16 bg-blue-50 dark:bg-blue-500/10 text-blue-500 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4">

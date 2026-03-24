@@ -1,28 +1,57 @@
-import { useState } from 'react'
-import { Building2, MessageCircle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Building2, MessageCircle, Save, Loader2 } from 'lucide-react'
 import { inputClasses } from '../utils/constants'
 import { useToast } from '../context/ToastContext'
+import { useGym } from '../context/GymContext'
 
 export default function ConfiguracionView() {
   const { mostrarToast } = useToast()
+  const { configuracion, guardarConfiguracion } = useGym()
+  const [guardando, setGuardando] = useState(false)
 
-  const [config, setConfig] = useState({
-    nombreGimnasio: 'TRAMUSA S.A.',
-    moneda: 'Soles (S/)',
-    direccion: 'Av. Machupicchu s/n, Cusco',
-    telefono: '+51 999 888 777',
-    mensajeTicket: 'Gracias por entrenar con nosotros! Recuerda traer tu toalla.',
-    plantillaBienvenida: 'Hola {nombre}! Bienvenido a {gimnasio}. Tu pase de acceso es: {codigoQR}. A darle con todo!',
-    plantillaVencimiento: 'Hola {nombre}, te recordamos que tu plan {plan} acaba de vencer. Te esperamos para renovarlo!',
+  const [form, setForm] = useState({
+    nombre_gimnasio: '',
+    moneda: 'S/',
+    direccion: '',
+    telefono: '',
+    mensaje_ticket: '',
+    plantilla_bienvenida: '',
+    plantilla_vencimiento: '',
   })
 
+  // Sincronizar con el contexto cuando cargue la config de la BD
+  useEffect(() => {
+    if (configuracion) {
+      setForm({
+        nombre_gimnasio: configuracion.nombre_gimnasio || '',
+        moneda: configuracion.moneda || 'S/',
+        direccion: configuracion.direccion || '',
+        telefono: configuracion.telefono || '',
+        mensaje_ticket: configuracion.mensaje_ticket || '',
+        plantilla_bienvenida: configuracion.plantilla_bienvenida || '',
+        plantilla_vencimiento: configuracion.plantilla_vencimiento || '',
+      })
+    }
+  }, [configuracion])
+
   function handleChange(e) {
-    setConfig(prev => ({ ...prev, [e.target.name]: e.target.value }))
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
-  function handleGuardar(e) {
+  async function handleGuardar(e) {
     e.preventDefault()
-    mostrarToast('Configuracion guardada con exito')
+    if (!form.nombre_gimnasio.trim()) {
+      mostrarToast('El nombre del gimnasio es obligatorio', 'error')
+      return
+    }
+    setGuardando(true)
+    const result = await guardarConfiguracion(form)
+    setGuardando(false)
+    if (result.success) {
+      mostrarToast('Configuracion guardada con exito')
+    } else {
+      mostrarToast(result.mensaje || 'Error al guardar', 'error')
+    }
   }
 
   return (
@@ -42,27 +71,29 @@ export default function ConfiguracionView() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Nombre Oficial</label>
-              <input type="text" name="nombreGimnasio" value={config.nombreGimnasio} onChange={handleChange} className={inputClasses} />
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Nombre Oficial <span className="text-red-400">*</span></label>
+              <input type="text" name="nombre_gimnasio" value={form.nombre_gimnasio} onChange={handleChange} className={inputClasses} placeholder="Ej: Mi Gimnasio S.A." />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Moneda Principal</label>
-              <select name="moneda" value={config.moneda} onChange={handleChange} className={inputClasses}>
-                <option value="Soles (S/)">Soles (S/)</option>
-                <option value="Dolares ($)">Dolares ($)</option>
+              <select name="moneda" value={form.moneda} onChange={handleChange} className={inputClasses}>
+                <option value="S/">Soles (S/)</option>
+                <option value="$">Dólares ($)</option>
+                <option value="€">Euros (€)</option>
+                <option value="Bs.">Bolivianos (Bs.)</option>
               </select>
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Direccion Local</label>
-              <input type="text" name="direccion" value={config.direccion} onChange={handleChange} className={inputClasses} />
+              <input type="text" name="direccion" value={form.direccion} onChange={handleChange} className={inputClasses} placeholder="Ej: Av. Principal 123, Ciudad" />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Telefono / WhatsApp de Contacto</label>
-              <input type="text" name="telefono" value={config.telefono} onChange={handleChange} className={inputClasses} />
+              <input type="text" name="telefono" value={form.telefono} onChange={handleChange} className={inputClasses} placeholder="+51 999 888 777" />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Mensaje al pie del ticket</label>
-              <input type="text" name="mensajeTicket" value={config.mensajeTicket} onChange={handleChange} placeholder="Ej: Gracias por tu preferencia!" className={inputClasses} />
+              <input type="text" name="mensaje_ticket" value={form.mensaje_ticket} onChange={handleChange} placeholder="Ej: Gracias por tu preferencia!" className={inputClasses} />
             </div>
           </div>
         </div>
@@ -84,19 +115,24 @@ export default function ConfiguracionView() {
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Mensaje de Bienvenida (Nueva Inscripcion)</label>
-              <textarea name="plantillaBienvenida" value={config.plantillaBienvenida} onChange={handleChange} rows="3" className={`${inputClasses} resize-none`} />
+              <textarea name="plantilla_bienvenida" value={form.plantilla_bienvenida} onChange={handleChange} rows="3" className={`${inputClasses} resize-none`} />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Mensaje de Vencimiento de Plan</label>
-              <textarea name="plantillaVencimiento" value={config.plantillaVencimiento} onChange={handleChange} rows="3" className={`${inputClasses} resize-none`} />
+              <textarea name="plantilla_vencimiento" value={form.plantilla_vencimiento} onChange={handleChange} rows="3" className={`${inputClasses} resize-none`} />
             </div>
           </div>
         </div>
 
         {/* BOTON GUARDAR */}
         <div className="flex justify-end pt-2">
-          <button type="submit" className="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-8 rounded-xl transition-colors shadow-sm">
-            Guardar Cambios
+          <button
+            type="submit"
+            disabled={guardando}
+            className="bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white font-semibold py-3 px-8 rounded-xl transition-colors shadow-sm flex items-center gap-2"
+          >
+            {guardando ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+            {guardando ? 'Guardando...' : 'Guardar Cambios'}
           </button>
         </div>
 

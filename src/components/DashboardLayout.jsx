@@ -5,9 +5,9 @@ import { useTheme } from '../context/ThemeContext'
 const logoTramusa = '/logo_empresa_tramusa.svg'
 
 export const menuItems = [
-  { icon: Home, label: 'Inicio', roles: ['admin', 'recepcionista'] },
-  { icon: Users, label: 'Miembros', roles: ['admin', 'recepcionista'] },
-  { icon: CalendarCheck, label: 'Asistencias', roles: ['admin', 'recepcionista'] },
+  { icon: Home, label: 'Inicio', roles: ['admin', 'recepcion'] },
+  { icon: Users, label: 'Miembros', roles: ['admin', 'recepcion'] },
+  { icon: CalendarCheck, label: 'Asistencias', roles: ['admin', 'recepcion'] },
   { icon: DollarSign, label: 'Finanzas', roles: ['admin'] },
   { icon: LayoutList, label: 'Planes', roles: ['admin'] },
   { icon: Settings, label: 'Configuración', roles: ['admin'] },
@@ -29,7 +29,8 @@ export default function DashboardLayout({ children, usuario, onLogout, vistaActi
   const [notificaciones, setNotificaciones] = useState([])
   const dropdownRef = useRef(null)
 
-  const filteredMenu = menuItems.filter(item => item.roles.includes(usuario.rol))
+  const rolNormalizado = usuario?.rol?.toLowerCase()
+  const filteredMenu = menuItems.filter(item => item.roles.includes(rolNormalizado))
   const isHome = vistaActiva === 'Inicio'
 
   const noLeidas = notificaciones.filter((n) => !n.leido).length

@@ -16,7 +16,8 @@
       "Bash(srcdir=\"/Users/luidman/Documents/Proyectos_Programador/PaginaWeb+DashBoard/Gymnasia Tramusa/tramusa-gym-code/src\" for func in getPeakHours getChurnRisk getTopAttendees)",
       "Bash(do echo:*)",
       "Bash(file=\"/Users/luidman/Documents/Proyectos_Programador/PaginaWeb+DashBoard/Gymnasia Tramusa/tramusa-gym-code/src/components/DashboardInicio.jsx\")",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(curl -s http://localhost:8888/tramusagym-api/obtener_asistencias.php)"
     ]
   }
 }
