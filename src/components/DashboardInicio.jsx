@@ -23,7 +23,7 @@ function diasHastaVencimiento(fechaFinStr) {
 }
 
 export default function DashboardInicio({ userName = 'Dina', setVistaActiva, setMiembroPreSeleccionado }) {
-  const { miembros, historial } = useGym()
+  const { miembros, historial, resumen, configuracion } = useGym()
 
   // Modal Express
   const [miembroModal, setMiembroModal] = useState(null)
@@ -36,22 +36,6 @@ export default function DashboardInicio({ userName = 'Dina', setVistaActiva, set
   const activos = miembros.filter(m => m.estado === 'activo').length
   const pasesActivos = miembros.filter(m => m.estado === 'pase_activo').length
   const vencidos = miembros.filter(m => m.estado === 'vencido').length
-
-  const hoy = new Date()
-  const asistenciasHoy = historial.filter(h => {
-    const fecha = new Date(h.hora)
-    return fecha.toDateString() === hoy.toDateString() && (h.tipo === 'asistencia' || h.tipo === 'cobro_asistencia')
-  }).length
-
-  const ingresosHoy = historial
-    .filter(h => {
-      const fecha = new Date(h.hora)
-      return fecha.toDateString() === hoy.toDateString() && (h.tipo === 'cobro' || h.tipo === 'cobro_asistencia')
-    })
-    .reduce((total, h) => {
-      const match = h.detalle.match(/S\/\s*([0-9.]+)/)
-      return total + (match ? parseFloat(match[1]) : 0)
-    }, 0)
 
   // Miembros que vencen en los próximos 7 días (solo activos)
   const proximosAVencer = miembros
@@ -118,7 +102,7 @@ export default function DashboardInicio({ userName = 'Dina', setVistaActiva, set
             <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Miembros Activos</span>
           </div>
           <div>
-            <h3 className="text-4xl font-black text-slate-800 dark:text-slate-100">{activos + pasesActivos}</h3>
+            <h3 className="text-4xl font-black text-slate-800 dark:text-slate-100">{resumen.miembros_activos}</h3>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 font-medium">{activos} planes + {pasesActivos} pases</p>
           </div>
         </div>
@@ -132,7 +116,7 @@ export default function DashboardInicio({ userName = 'Dina', setVistaActiva, set
             <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Asistencias Hoy</span>
           </div>
           <div>
-            <h3 className="text-4xl font-black text-slate-800 dark:text-slate-100">{asistenciasHoy}</h3>
+            <h3 className="text-4xl font-black text-slate-800 dark:text-slate-100">{resumen?.asistencias_hoy ?? 0}</h3>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 font-medium">entradas registradas</p>
           </div>
         </div>
@@ -160,7 +144,7 @@ export default function DashboardInicio({ userName = 'Dina', setVistaActiva, set
             <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Ingresos Hoy</span>
           </div>
           <div>
-            <h3 className="text-4xl font-black text-slate-800 dark:text-slate-100">S/ {ingresosHoy.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+            <h3 className="text-4xl font-black text-slate-800 dark:text-slate-100">{configuracion?.moneda} {Number(resumen?.ingresos_hoy ?? 0).toFixed(2)}</h3>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 font-medium">cobros del dia</p>
           </div>
         </div>
@@ -288,13 +272,13 @@ export default function DashboardInicio({ userName = 'Dina', setVistaActiva, set
       {/* CAJÓN DESLIZANTE (SLIDE-OVER) DE HISTORIAL COMPLETO */}
       {mostrarHistorialCompleto && (
         <div
-          className="fixed inset-0 z-[110] bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300"
+          className="fixed inset-0 z-110 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300"
           onClick={() => setMostrarHistorialCompleto(false)}
         />
       )}
 
       <div className={`
-        fixed inset-y-0 right-0 z-[120] w-full max-w-[420px] bg-white dark:bg-slate-900 shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col
+        fixed inset-y-0 right-0 z-120 w-full max-w-105 bg-white dark:bg-slate-900 shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col
         ${mostrarHistorialCompleto ? 'translate-x-0' : 'translate-x-full'}
       `}>
         {/* Cabecera del Panel */}
@@ -354,7 +338,7 @@ export default function DashboardInicio({ userName = 'Dina', setVistaActiva, set
 
       {/* MODAL EXPRESS DE VENCIMIENTO */}
       {miembroModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-transparent dark:border-slate-800">
 
             <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">

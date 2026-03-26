@@ -12,8 +12,11 @@ export function GymProvider({ children }) {
     telefono: '',
     direccion: '',
     mensaje_ticket: '',
-    plantilla_bienvenida: '',
-    plantilla_vencimiento: '',
+  })
+  const [resumen, setResumen] = useState({
+    ingresos_hoy: 0,
+    miembros_activos: 0,
+    asistencias_hoy: 0,
   })
 
   const fetchConfiguracion = async () => {
@@ -21,10 +24,35 @@ export function GymProvider({ children }) {
       const response = await fetch('http://localhost:8888/tramusagym-api/obtener_configuracion.php')
       const data = await response.json()
       if (data.success && data.configuracion) {
-        setConfiguracion(prev => ({ ...prev, ...data.configuracion }))
+        const c = data.configuracion
+        setConfiguracion(prev => ({
+          ...prev,
+          nombre_gimnasio: c.nombre_gimnasio || prev.nombre_gimnasio,
+          moneda: c.moneda || prev.moneda,
+          telefono: c.telefono || '',
+          direccion: c.direccion || '',
+          mensaje_ticket: c.mensaje_ticket || '',
+        }))
       }
     } catch (error) {
       console.warn('[fetchConfiguracion] Error de conexión:', error)
+    }
+  }
+
+  async function fetchResumen() {
+    try {
+      const response = await fetch('http://localhost:8888/tramusagym-api/obtener_resumen_dashboard.php?t=' + new Date().getTime())
+      const data = await response.json()
+      console.log('=> DATO FRESCO DEL DASHBOARD:', data)
+      if (data.success) {
+        setResumen({
+          ingresos_hoy: Number(data.ingresos_hoy) || 0,
+          miembros_activos: Number(data.miembros_activos) || 0,
+          asistencias_hoy: Number(data.asistencias_hoy) || 0,
+        })
+      }
+    } catch (error) {
+      console.warn('[fetchResumen] Error de conexión:', error)
     }
   }
 
@@ -158,6 +186,7 @@ export function GymProvider({ children }) {
     fetchMiembros()
     fetchHistorial()
     fetchConfiguracion()
+    fetchResumen()
   }, [])
 
   const agregarMiembro = async (nuevoMiembro) => {
@@ -241,6 +270,7 @@ export function GymProvider({ children }) {
   }
 
   async function agregarRegistro(nuevoRegistro) {
+    console.log('3. Entrando a agregarRegistro en Contexto. Datos:', nuevoRegistro)
     // Insertar localmente de inmediato para feedback instantáneo
     const registro = {
       ...nuevoRegistro,
@@ -250,19 +280,39 @@ export function GymProvider({ children }) {
     }
     setHistorial(prev => [registro, ...prev])
 
-    // Luego sincronizar con la BD para no perder el registro al recargar
+    // Visitas libres y cobros ya se persisten por sus propios endpoints
+    // (registrarVisitaLibre + registrarTransaccion), no necesitan fetch adicional
+    const esSoloLocal = nuevoRegistro.visitaLibre
+      || nuevoRegistro.tipo === 'cobro'
+      || nuevoRegistro.tipo === 'cobro_asistencia'
+
+    if (esSoloLocal) return registro
+
+    // Asistencias normales de miembros → persistir en la BD
+    const payload = {
+      miembro_id: nuevoRegistro.miembroId || null,
+      tipo: nuevoRegistro.tipo || 'asistencia',
+      titulo: nuevoRegistro.titulo || '',
+      detalle: nuevoRegistro.detalle || '',
+    }
+    console.log('[Asistencia Miembro] Enviando:', payload)
+    console.log('4. Haciendo fetch a PHP...')
+
     try {
-      await fetch('http://localhost:8888/tramusagym-api/guardar_registro.php', {
+      const response = await fetch('http://localhost:8888/tramusagym-api/registrar_asistencia.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipo: nuevoRegistro.tipo || 'asistencia',
-          titulo: nuevoRegistro.titulo || '',
-          detalle: nuevoRegistro.detalle || '',
-        })
+        body: JSON.stringify(payload)
       })
+      const data = await response.json()
+      console.log('[Asistencia Miembro] Respuesta:', data)
+
+      if (data.success) {
+        await fetchResumen()
+      } else {
+        console.error('[Asistencia Miembro] Error del servidor:', data.mensaje)
+      }
     } catch (error) {
-      // Si falla la persistencia, el registro local sigue visible en esta sesión
       console.warn("[agregarRegistro] No se pudo persistir en BD:", error)
     }
 
@@ -382,12 +432,63 @@ export function GymProvider({ children }) {
     }
   };
 
+  const registrarTransaccion = async (datosTransaccion) => {
+    try {
+      console.log('[registrarTransaccion] Enviando payload:', datosTransaccion)
+      const response = await fetch('http://localhost:8888/tramusagym-api/guardar_transaccion.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datosTransaccion),
+      })
+      const data = await response.json()
+      console.log('[registrarTransaccion] Respuesta del servidor:', data)
+      if (data.success) {
+        await fetchResumen()
+      } else {
+        console.error('[registrarTransaccion] Error del servidor:', data.mensaje)
+      }
+      return data
+    } catch (error) {
+      console.error('[registrarTransaccion] Error de conexión:', error)
+      return { success: false }
+    }
+  }
+
+  const registrarVisitaLibre = async (datosVisita) => {
+    try {
+      console.log('[registrarVisitaLibre] Enviando payload:', datosVisita)
+      const response = await fetch('http://localhost:8888/tramusagym-api/registrar_visita_libre.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datosVisita),
+      })
+      const data = await response.json()
+      console.log('[registrarVisitaLibre] Respuesta del servidor:', data)
+      if (data.success) {
+        await fetchResumen()
+      } else {
+        console.error('[registrarVisitaLibre] Error del servidor:', data.mensaje)
+      }
+      return data
+    } catch (error) {
+      console.error('[registrarVisitaLibre] Error de conexión:', error)
+      return { success: false }
+    }
+  }
+
   const guardarConfiguracion = async (nuevosDatos) => {
     try {
+      const payload = {
+        nombre_gimnasio: nuevosDatos.nombre_gimnasio,
+        moneda: nuevosDatos.moneda,
+        telefono: nuevosDatos.telefono,
+        direccion: nuevosDatos.direccion,
+        mensaje_ticket: nuevosDatos.mensaje_ticket,
+      }
       const response = await fetch('http://localhost:8888/tramusagym-api/guardar_configuracion.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(nuevosDatos)
+        body: JSON.stringify(payload)
       })
       const data = await response.json()
       if (data.success) {
@@ -409,6 +510,8 @@ export function GymProvider({ children }) {
       historial,
       planes,
       configuracion,
+      resumen,
+      fetchResumen,
       agregarMiembro,
       actualizarMiembro,
       agregarRegistro,
@@ -420,6 +523,8 @@ export function GymProvider({ children }) {
       actualizarPlan,
       eliminarPlan,
       toggleActivoPlan,
+      registrarTransaccion,
+      registrarVisitaLibre,
       guardarConfiguracion,
     }}>
       {children}

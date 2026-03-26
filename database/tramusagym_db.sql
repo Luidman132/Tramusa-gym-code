@@ -24,20 +24,16 @@ CREATE TABLE IF NOT EXISTS usuarios (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- TABLA: configuracion_empresa
+-- TABLA: configuracion
 -- ============================================================
-CREATE TABLE IF NOT EXISTS configuracion_empresa (
+CREATE TABLE IF NOT EXISTS configuracion (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  nombre_gimnasio VARCHAR(150) NOT NULL,
-  moneda VARCHAR(10) NOT NULL DEFAULT 'PEN',
-  direccion VARCHAR(255) DEFAULT NULL,
-  telefono VARCHAR(30) DEFAULT NULL,
-  mensaje_ticket TEXT DEFAULT NULL,
-  plantilla_bienvenida TEXT DEFAULT NULL,
-  plantilla_vencimiento TEXT DEFAULT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
+  nombre_gimnasio VARCHAR(100) NOT NULL,
+  telefono VARCHAR(20) DEFAULT NULL,
+  moneda VARCHAR(10) DEFAULT 'S/',
+  mensaje_ticket VARCHAR(255) DEFAULT NULL,
+  direccion VARCHAR(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
 
 -- ============================================================
 -- TABLA: planes
@@ -125,14 +121,6 @@ INSERT INTO usuarios (nombre, correo, password, rol, activo) VALUES
   ('Julio Admin', 'julio@tramusa.pe', 'admin123', 'Admin', TRUE),
   ('Dina Recepcion', 'dina@tramusa.pe', 'recepcion123', 'Recepcion', TRUE);
 
--- Configuración de la empresa (1 fila)
-INSERT INTO configuracion_empresa (nombre_gimnasio, moneda, direccion, telefono, mensaje_ticket, plantilla_bienvenida, plantilla_vencimiento) VALUES
-  (
-    'Tramusa S.A.',
-    'PEN',
-    'Av. Principal 123, Lima, Perú',
-    '+51 999 999 999',
-    '¡Gracias por tu visita a Tramusa S.A.! Te esperamos pronto.',
-    'Hola {{nombre}}, ¡bienvenido/a a Tramusa S.A.! 🏋️ Tu membresía *{{plan}}* está activa hasta el {{fecha_fin}}. ¡Nos vemos en el gym!',
-    'Hola {{nombre}}, tu membresía *{{plan}}* vence el {{fecha_fin}}. 📅 Renueva ahora y no pierdas tu racha. ¡Te esperamos!'
-  );
+-- Configuración del negocio (1 fila)
+INSERT INTO configuracion (id, nombre_gimnasio, telefono, moneda, mensaje_ticket, direccion) VALUES
+  (1, 'Tramusa S.A.', '+51 999 888 777', 'S/', '¡Gracias por entrenar con nosotros! Pase oficial de acceso.', 'Av. Principal 123, Ciudad');

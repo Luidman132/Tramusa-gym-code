@@ -15,7 +15,7 @@ import { AsistenciaQRScanner } from './AsistenciaQRScanner'
 
 export default function RegistrarAsistenciaView({ usuario, miembroPreSeleccionado, setMiembroPreSeleccionado }) {
   const { mostrarToast } = useToast()
-  const { miembros, historial, actualizarMiembro, agregarRegistro, actualizarRegistro, eliminarRegistro, fetchMiembros, fetchHistorial } = useGym()
+  const { miembros, historial, actualizarMiembro, agregarRegistro, actualizarRegistro, eliminarRegistro, fetchMiembros, fetchHistorial, registrarTransaccion, registrarVisitaLibre: registrarVisitaLibreBD } = useGym()
 
   const [busqueda, setBusqueda] = useState('')
   const [resultadosBusqueda, setResultadosBusqueda] = useState([])
@@ -80,17 +80,21 @@ export default function RegistrarAsistenciaView({ usuario, miembroPreSeleccionad
   }
 
   function seleccionarCliente(cliente) {
+    console.log('=> MIEMBRO SELECCIONADO MANUALMENTE:', cliente)
     setClienteSeleccionado(cliente)
     setBusqueda('')
     setResultadosBusqueda([])
   }
 
   function confirmarAsistencia() {
+    console.log('1. BOTON PRESIONADO en Vista. Miembro:', clienteSeleccionado)
     if (!clienteSeleccionado) return
+    console.log('2. Llamando a agregarRegistro desde la Vista...')
     agregarRegistro({
       tipo: 'asistencia',
       titulo: clienteSeleccionado.nombre,
       detalle: `Plan: ${clienteSeleccionado.plan}`,
+      miembroId: clienteSeleccionado.id,
     })
     mostrarToast(`Asistencia registrada: ${clienteSeleccionado.nombre}`)
     limpiarBusqueda()
@@ -103,6 +107,7 @@ export default function RegistrarAsistenciaView({ usuario, miembroPreSeleccionad
       tipo: 'asistencia',
       titulo: clienteSeleccionado.nombre,
       detalle: `Pase: Dias restantes ${nuevosDias}`,
+      miembroId: clienteSeleccionado.id,
     })
     if (nuevosDias <= 0) {
       actualizarMiembro(clienteSeleccionado.id, { estado: 'vencido', diasRestantes: 0 })
@@ -129,7 +134,7 @@ export default function RegistrarAsistenciaView({ usuario, miembroPreSeleccionad
     setErroresVisita((prev) => { const c = { ...prev }; delete c[campo]; return c })
   }
 
-  function registrarVisitaLibre() {
+  async function registrarVisitaLibre() {
     const errs = {}
     if (!nombresVisita.trim()) errs.nombres = true
     if (!apellidosVisita.trim()) errs.apellidos = true
@@ -140,6 +145,23 @@ export default function RegistrarAsistenciaView({ usuario, miembroPreSeleccionad
       return
     }
     const monto = parseFloat(montoVisita)
+
+    // 1. Guardar la visita libre en su tabla propia (MySQL)
+    await registrarVisitaLibreBD({
+      nombre_completo: `${nombresVisita.trim()} ${apellidosVisita.trim()}`,
+      dni: dniVisita.trim() || null,
+      telefono: celularVisita.trim() || null,
+      correo: correoVisita.trim() || null,
+      monto_pagado: monto,
+    })
+
+    // 2. Registrar la transacción de dinero (MySQL)
+    await registrarTransaccion({
+      concepto: 'Pase por Día (Visita Libre)',
+      monto,
+      metodo_pago: 'Efectivo',
+    })
+
     agregarRegistro({
       tipo: 'cobro_asistencia',
       titulo: `Visita Libre: ${nombresVisita.trim()} ${apellidosVisita.trim()}`,
@@ -166,12 +188,20 @@ export default function RegistrarAsistenciaView({ usuario, miembroPreSeleccionad
     resetFormularioVisita()
   }
 
-  function confirmarRenovacion(datos) {
+  async function confirmarRenovacion(datos) {
     if (!clienteSeleccionado) return
     const monto = parseMonto(datos.monto)
     const [year, month, day] = datos.fechaFin.split('-')
     const fechaFinFormateada = `${day}/${month}/${year}`
     const nombrePlanCorto = datos.planLabel.split(' ')[0]
+
+    // Registrar transacción en la BD (MySQL)
+    await registrarTransaccion({
+      concepto: `Renovación de Plan - ${datos.planLabel}`,
+      monto,
+      metodo_pago: 'Efectivo',
+      miembro_id: clienteSeleccionado.id,
+    })
 
     actualizarMiembro(clienteSeleccionado.id, {
       estado: 'activo',
@@ -191,9 +221,19 @@ export default function RegistrarAsistenciaView({ usuario, miembroPreSeleccionad
     limpiarBusqueda()
   }
 
-  function procesarVentaPase(diasPase, montoRaw, registrarIngresoAhora) {
+  async function procesarVentaPase(diasPase, montoRaw, registrarIngresoAhora) {
     if (!clienteSeleccionado) return
     const monto = parseFloat(montoRaw) || 0
+
+    // Registrar transacción en la BD (MySQL)
+    if (monto > 0) {
+      await registrarTransaccion({
+        concepto: `Venta Pase (${diasPase} día${diasPase > 1 ? 's' : ''})`,
+        monto,
+        metodo_pago: 'Efectivo',
+        miembro_id: clienteSeleccionado.id,
+      })
+    }
     const diasRestantesFinal = registrarIngresoAhora ? diasPase - 1 : diasPase
     const nuevoEstado = (registrarIngresoAhora && diasRestantesFinal <= 0) ? 'vencido' : 'pase_activo'
 
@@ -239,9 +279,11 @@ export default function RegistrarAsistenciaView({ usuario, miembroPreSeleccionad
   }
 
   async function procesarQR(qrToken) {
+    console.log('=> QR ESCANEADO:', qrToken)
     if (!qrToken) return
 
     try {
+      console.log('=> QR: Haciendo fetch a registrar_asistencia.php con qr_token...')
       const response = await fetch('http://localhost:8888/tramusagym-api/registrar_asistencia.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -249,6 +291,7 @@ export default function RegistrarAsistenciaView({ usuario, miembroPreSeleccionad
       })
 
       const data = await response.json()
+      console.log('=> QR: Respuesta del servidor:', data)
 
       if (data.success) {
         // Recargar datos para reflejar cambios

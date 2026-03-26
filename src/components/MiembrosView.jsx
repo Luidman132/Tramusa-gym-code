@@ -24,7 +24,7 @@ const estadoTexto = {
 }
 
 export default function MiembrosView({ setVistaActiva, miembroPreSeleccionado, setMiembroPreSeleccionado }) {
-  const { miembros, planes, actualizarMiembro, agregarRegistro } = useGym()
+  const { miembros, planes, configuracion, actualizarMiembro, agregarRegistro } = useGym()
   const { mostrarToast } = useToast()
   const [busqueda, setBusqueda] = useState('')
   const [filtroEstado, setFiltroEstado] = useState('todos')
@@ -552,7 +552,7 @@ export default function MiembrosView({ setVistaActiva, miembroPreSeleccionado, s
         {/* MODAL DE CÓDIGO QR */}
         {mostrarModalQR && miembroViendo && (
           <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden flex flex-col text-center">
+            <div className="bg-white rounded-4xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col text-center">
 
               {/* Cabecera del modal */}
               <div className="p-4 flex justify-between items-center border-b border-slate-100 bg-slate-50">
@@ -575,7 +575,7 @@ export default function MiembrosView({ setVistaActiva, miembroPreSeleccionado, s
                   {miembroViendo.qrToken ? (
                     <QRCode value={miembroViendo.qrToken} size={180} level="H" />
                   ) : (
-                    <div className="w-[180px] h-[180px] flex items-center justify-center bg-slate-50 text-slate-400 text-sm">Sin código asignado</div>
+                    <div className="w-45 h-45 flex items-center justify-center bg-slate-50 text-slate-400 text-sm">Sin código asignado</div>
                   )}
                 </div>
                 <p className="text-[10px] text-slate-400 mt-4">{configuracion.nombre_gimnasio} {configuracion.mensaje_ticket && `- ${configuracion.mensaje_ticket}`}</p>
@@ -697,7 +697,7 @@ export default function MiembrosView({ setVistaActiva, miembroPreSeleccionado, s
             <div className="bg-white dark:bg-slate-900 rounded-4xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col border border-transparent dark:border-slate-800 max-h-[90vh]">
 
               {/* Cabecera */}
-              <div className="p-6 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10 border-b border-slate-100 dark:border-slate-800 text-center relative shrink-0">
+              <div className="p-6 bg-linear-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10 border-b border-slate-100 dark:border-slate-800 text-center relative shrink-0">
                 <button
                   onClick={() => setResumenOperacion(null)}
                   className="absolute top-4 right-4 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 bg-white dark:bg-slate-800 rounded-full p-1 shadow-sm cursor-pointer transition-colors"

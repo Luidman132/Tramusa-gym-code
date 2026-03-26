@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Building2, MessageCircle, Save, Loader2 } from 'lucide-react'
+import { Building2, Save, Loader2 } from 'lucide-react'
 import { inputClasses } from '../utils/constants'
 import { useToast } from '../context/ToastContext'
 import { useGym } from '../context/GymContext'
@@ -15,8 +15,6 @@ export default function ConfiguracionView() {
     direccion: '',
     telefono: '',
     mensaje_ticket: '',
-    plantilla_bienvenida: '',
-    plantilla_vencimiento: '',
   })
 
   // Sincronizar con el contexto cuando cargue la config de la BD
@@ -28,8 +26,6 @@ export default function ConfiguracionView() {
         direccion: configuracion.direccion || '',
         telefono: configuracion.telefono || '',
         mensaje_ticket: configuracion.mensaje_ticket || '',
-        plantilla_bienvenida: configuracion.plantilla_bienvenida || '',
-        plantilla_vencimiento: configuracion.plantilla_vencimiento || '',
       })
     }
   }, [configuracion])
@@ -94,32 +90,6 @@ export default function ConfiguracionView() {
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Mensaje al pie del ticket</label>
               <input type="text" name="mensaje_ticket" value={form.mensaje_ticket} onChange={handleChange} placeholder="Ej: Gracias por tu preferencia!" className={inputClasses} />
-            </div>
-          </div>
-        </div>
-
-        {/* TARJETA 2: PLANTILLAS DE WHATSAPP */}
-        <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-2xl shadow-sm dark:shadow-none border border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <MessageCircle size={20} />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Plantillas de WhatsApp</h3>
-            </div>
-          </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 ml-[52px]">
-            Usa variables como <code className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded text-xs font-bold">{'{nombre}'}</code>, <code className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded text-xs font-bold">{'{codigoQR}'}</code>, <code className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded text-xs font-bold">{'{plan}'}</code> o <code className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded text-xs font-bold">{'{gimnasio}'}</code>.
-          </p>
-
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Mensaje de Bienvenida (Nueva Inscripcion)</label>
-              <textarea name="plantilla_bienvenida" value={form.plantilla_bienvenida} onChange={handleChange} rows="3" className={`${inputClasses} resize-none`} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Mensaje de Vencimiento de Plan</label>
-              <textarea name="plantilla_vencimiento" value={form.plantilla_vencimiento} onChange={handleChange} rows="3" className={`${inputClasses} resize-none`} />
             </div>
           </div>
         </div>

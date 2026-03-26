@@ -120,7 +120,7 @@ export default function PlanesView() {
         {/* Botón Crear Nuevo Plan */}
         <button
           onClick={abrirModalCrear}
-          className="bg-slate-50 dark:bg-slate-800/50 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:border-red-300 dark:hover:border-red-500/50 hover:bg-red-50 dark:hover:bg-red-500/5 transition-all min-h-[250px] group"
+          className="bg-slate-50 dark:bg-slate-800/50 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:border-red-300 dark:hover:border-red-500/50 hover:bg-red-50 dark:hover:bg-red-500/5 transition-all min-h-62.5 group"
         >
           <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 group-hover:bg-red-100 dark:group-hover:bg-red-500/20 flex items-center justify-center mb-3 transition-colors">
             <Plus size={28} className="group-hover:scale-110 transition-transform" />

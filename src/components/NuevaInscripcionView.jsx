@@ -45,7 +45,7 @@ function generarCodigoQRUnico(nombreCompleto) {
 
 export default function NuevaInscripcionView({ setVistaActiva }) {
   const { mostrarToast } = useToast()
-  const { miembros, planes, agregarMiembro, agregarRegistro } = useGym()
+  const { miembros, planes, agregarMiembro, agregarRegistro, registrarTransaccion } = useGym()
   const hoyIso = new Date().toISOString().split('T')[0]
 
   const planesActivos = planes.filter(p => {
@@ -259,6 +259,13 @@ export default function NuevaInscripcionView({ setVistaActiva }) {
     const qrTokenReal = resultado.data.qr_token || generarCodigoQRUnico(nombreCompleto)
 
     if (monto) {
+      // Registrar transacción en la BD (MySQL)
+      await registrarTransaccion({
+        concepto: `Inscripción - ${nombrePlan || 'Plan Personalizado'}`,
+        monto: parseFloat(monto),
+        metodo_pago: 'Efectivo',
+      })
+
       agregarRegistro({
         tipo: 'cobro',
         titulo: `Inscripcion: ${nombre.trim()} ${apellido.trim()}`,
