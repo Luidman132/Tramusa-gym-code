@@ -52,7 +52,7 @@ function App() {
       case 'Inicio':
         return <DashboardInicio userName={usuario.nombre} setVistaActiva={setVistaActiva} setMiembroPreSeleccionado={setMiembroPreSeleccionado} />
       case 'Miembros':
-        return <MiembrosView setVistaActiva={setVistaActiva} miembroPreSeleccionado={miembroPreSeleccionado} setMiembroPreSeleccionado={setMiembroPreSeleccionado} />
+        return <MiembrosView usuario={usuario} setVistaActiva={setVistaActiva} miembroPreSeleccionado={miembroPreSeleccionado} setMiembroPreSeleccionado={setMiembroPreSeleccionado} />
       case 'Nueva Inscripcion':
         return <NuevaInscripcionView setVistaActiva={setVistaActiva} />
       case 'Asistencias':
@@ -60,7 +60,7 @@ function App() {
       case 'Finanzas':
         return <ReportesView />
       case 'Planes':
-        return <PlanesView />
+        return <PlanesView usuario={usuario} />
       case 'Configuración':
         return <ConfiguracionView />
       default:

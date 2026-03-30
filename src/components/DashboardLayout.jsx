@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Home, Users, CalendarCheck, DollarSign, LayoutList, Settings, Bell, Check, BellOff, Sun, Moon, LogOut, Menu, X } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
+import { useGym } from '../context/GymContext'
 
 const logoTramusa = '/logo_empresa_tramusa.svg'
 
@@ -23,6 +24,7 @@ function formatDateTime(date) {
 
 export default function DashboardLayout({ children, usuario, onLogout, vistaActiva, setVistaActiva }) {
   const { darkMode, toggleDarkMode } = useTheme()
+  const { configuracion, miembros } = useGym()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [menuAbierto, setMenuAbierto] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
@@ -34,6 +36,40 @@ export default function DashboardLayout({ children, usuario, onLogout, vistaActi
   const isHome = vistaActiva === 'Inicio'
 
   const noLeidas = notificaciones.filter((n) => !n.leido).length
+  const leidasRef = useRef(new Set())
+
+  useEffect(() => {
+    const hoy = new Date()
+    hoy.setHours(0, 0, 0, 0)
+
+    const alertas = miembros
+      .filter(m => m.estado !== 'inactivo' && m.estado !== 'congelado' && m.fin)
+      .map(m => {
+        const limpio = m.fin.split(' ')[0]
+        const [y, mo, d] = limpio.includes('-') ? limpio.split('-') : (() => { const p = limpio.split('/'); return [p[2], p[1], p[0]] })()
+        const fechaFin = new Date(y, mo - 1, d)
+        const diff = Math.ceil((fechaFin - hoy) / (1000 * 60 * 60 * 24))
+        return { ...m, diasRestantes: diff }
+      })
+      .filter(m => m.diasRestantes >= 0 && m.diasRestantes <= 3)
+      .sort((a, b) => a.diasRestantes - b.diasRestantes)
+      .map(m => {
+        const textoVence = m.diasRestantes === 0
+          ? 'vence HOY'
+          : m.diasRestantes === 1
+            ? 'vence MAÑANA'
+            : `vence en ${m.diasRestantes} días`
+
+        return {
+          id: `venc-${m.id}`,
+          tipo: m.diasRestantes <= 1 ? 'danger' : 'warning',
+          texto: `${m.nombre} — ${m.plan} ${textoVence}`,
+          leido: leidasRef.current.has(`venc-${m.id}`),
+        }
+      })
+
+    setNotificaciones(alertas)
+  }, [miembros])
 
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -51,11 +87,15 @@ export default function DashboardLayout({ children, usuario, onLogout, vistaActi
   }, [])
 
   function marcarComoLeido(id) {
+    leidasRef.current.add(id)
     setNotificaciones((prev) => prev.map((n) => (n.id === id ? { ...n, leido: true } : n)))
   }
 
   function marcarTodasLeidas() {
-    setNotificaciones((prev) => prev.map((n) => ({ ...n, leido: true })))
+    setNotificaciones((prev) => {
+      prev.forEach(n => leidasRef.current.add(n.id))
+      return prev.map((n) => ({ ...n, leido: true }))
+    })
   }
 
   function navegarA(label) {
@@ -82,7 +122,7 @@ export default function DashboardLayout({ children, usuario, onLogout, vistaActi
       `}>
         {/* Cabecera del Sidebar con Logo */}
         <div className="px-6 py-8 flex items-center justify-between">
-          <img src={logoTramusa} alt="Tramusa Gym" className="w-auto h-36" />
+          <img src={configuracion.logo_base64 || logoTramusa} alt={configuracion.nombre_gimnasio || 'Tramusa Gym'} className="w-auto h-36 object-contain" />
           {/* Botón cerrar solo visible en móvil */}
           <button
             onClick={() => setMenuAbierto(false)}

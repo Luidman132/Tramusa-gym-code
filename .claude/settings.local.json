@@ -17,7 +17,10 @@
       "Bash(do echo:*)",
       "Bash(file=\"/Users/luidman/Documents/Proyectos_Programador/PaginaWeb+DashBoard/Gymnasia Tramusa/tramusa-gym-code/src/components/DashboardInicio.jsx\")",
       "Bash(cd:*)",
-      "Bash(curl -s http://localhost:8888/tramusagym-api/obtener_asistencias.php)"
+      "Bash(curl -s http://localhost:8888/tramusagym-api/obtener_asistencias.php)",
+      "Read(//Applications/MAMP/**)",
+      "Read(//Library/WebServer/**)",
+      "Read(//Applications/MAMP/htdocs/tramusagym-api/**)"
     ]
   }
 }

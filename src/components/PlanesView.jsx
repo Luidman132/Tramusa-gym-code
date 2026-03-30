@@ -4,7 +4,8 @@ import { inputClasses } from '../utils/constants'
 import { CurrencyInput } from './CurrencyInput'
 import { useGym } from '../context/GymContext'
 
-export default function PlanesView() {
+export default function PlanesView({ usuario }) {
+  const esAdmin = usuario?.rol?.toLowerCase() === 'admin'
   const { planes, agregarPlan, actualizarPlan, eliminarPlan, toggleActivoPlan } = useGym()
 
   const [mostrarModal, setMostrarModal] = useState(false)
@@ -117,16 +118,18 @@ export default function PlanesView() {
       <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-6">Gestión de Planes y Precios</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {/* Botón Crear Nuevo Plan */}
-        <button
-          onClick={abrirModalCrear}
-          className="bg-slate-50 dark:bg-slate-800/50 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:border-red-300 dark:hover:border-red-500/50 hover:bg-red-50 dark:hover:bg-red-500/5 transition-all min-h-62.5 group"
-        >
-          <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 group-hover:bg-red-100 dark:group-hover:bg-red-500/20 flex items-center justify-center mb-3 transition-colors">
-            <Plus size={28} className="group-hover:scale-110 transition-transform" />
-          </div>
-          <span className="font-semibold text-sm">Crear Nuevo Plan</span>
-        </button>
+        {/* Botón Crear Nuevo Plan — solo admin */}
+        {esAdmin && (
+          <button
+            onClick={abrirModalCrear}
+            className="bg-slate-50 dark:bg-slate-800/50 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:border-red-300 dark:hover:border-red-500/50 hover:bg-red-50 dark:hover:bg-red-500/5 transition-all min-h-62.5 group"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 group-hover:bg-red-100 dark:group-hover:bg-red-500/20 flex items-center justify-center mb-3 transition-colors">
+              <Plus size={28} className="group-hover:scale-110 transition-transform" />
+            </div>
+            <span className="font-semibold text-sm">Crear Nuevo Plan</span>
+          </button>
+        )}
 
         {/* Tarjetas de Planes */}
         {planes.map((plan) => (
@@ -165,31 +168,37 @@ export default function PlanesView() {
 
             {/* Acciones */}
             <div className="mt-auto flex items-center gap-2">
-              <button
-                onClick={() => abrirModalEditar(plan)}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-sm rounded-xl transition-colors"
-              >
-                <Edit2 size={15} />
-                Editar
-              </button>
-              <button
-                onClick={() => toggleActivoPlan(plan.id)}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 font-semibold text-sm rounded-xl transition-colors ${
-                  plan.activo
-                    ? 'bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 text-amber-600 dark:text-amber-400'
-                    : 'bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                }`}
-              >
-                <Power size={15} />
-                {plan.activo ? 'Desactivar' : 'Activar'}
-              </button>
-              <button
-                onClick={() => handleEliminarPlan(plan.id, plan.nombre)}
-                className="bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-500 dark:text-red-400 font-bold p-2.5 rounded-xl flex items-center justify-center transition-colors"
-                title="Eliminar Plan"
-              >
-                <Trash2 size={18} />
-              </button>
+              {esAdmin && (
+                <button
+                  onClick={() => abrirModalEditar(plan)}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-sm rounded-xl transition-colors"
+                >
+                  <Edit2 size={15} />
+                  Editar
+                </button>
+              )}
+              {esAdmin && (
+                <button
+                  onClick={() => toggleActivoPlan(plan.id)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 font-semibold text-sm rounded-xl transition-colors ${
+                    plan.activo
+                      ? 'bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                      : 'bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                  }`}
+                >
+                  <Power size={15} />
+                  {plan.activo ? 'Desactivar' : 'Activar'}
+                </button>
+              )}
+              {esAdmin && (
+                <button
+                  onClick={() => handleEliminarPlan(plan.id, plan.nombre)}
+                  className="bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-500 dark:text-red-400 font-bold p-2.5 rounded-xl flex items-center justify-center transition-colors"
+                  title="Eliminar Plan"
+                >
+                  <Trash2 size={18} />
+                </button>
+              )}
             </div>
           </div>
         ))}

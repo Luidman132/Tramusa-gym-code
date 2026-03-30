@@ -1,17 +1,27 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { DollarSign, Users, CalendarCheck, Download, TrendingUp } from 'lucide-react'
 import { useGym } from '../context/GymContext'
 
-function mismodia(a, b) {
-  return a.getDate() === b.getDate() && a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear()
+function formatEtiqueta(fechaStr, granularidad) {
+  if (granularidad === 'mes') {
+    // fechaStr viene como "2026-03" desde el backend
+    const [year, month] = fechaStr.split('-')
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+    return `${meses[parseInt(month) - 1]} ${year.slice(2)}`
+  }
+  // granularidad === 'dia': fechaStr viene como "2026-03-26"
+  const [, month, day] = fechaStr.split('-')
+  return `${parseInt(day)}/${parseInt(month)}`
 }
 
-function extraerMonto(detalle) {
-  const match = detalle.match(/S\/\s*([0-9.]+)/)
-  return match ? parseFloat(match[1]) : 0
-}
-
-function formatFechaCorta(date) {
+function formatTooltip(fechaStr, granularidad) {
+  if (granularidad === 'mes') {
+    const [year, month] = fechaStr.split('-')
+    const date = new Date(year, month - 1, 1)
+    return date.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' })
+  }
+  const [year, month, day] = fechaStr.split('-')
+  const date = new Date(year, month - 1, day)
   return date.toLocaleDateString('es-PE', { day: '2-digit', month: 'short' })
 }
 
@@ -19,52 +29,80 @@ const PERIODOS = [
   { id: '7dias', label: 'Ultimos 7 dias', dias: 7 },
   { id: '14dias', label: 'Ultimos 14 dias', dias: 14 },
   { id: '30dias', label: 'Ultimos 30 dias', dias: 30 },
+  { id: 'general', label: 'General', dias: 0 },
 ]
 
 export default function ReportesView() {
-  const { miembros, historial } = useGym()
+  const { miembros, reporteFinanzas, fetchReporteFinanzas, configuracion } = useGym()
   const [periodo, setPeriodo] = useState('7dias')
 
   const diasPeriodo = PERIODOS.find(p => p.id === periodo).dias
-  const hoy = new Date()
-  hoy.setHours(23, 59, 59, 999)
+  const esGeneral = diasPeriodo === 0
 
-  // Generar array de dias del periodo
-  const diasArray = []
-  for (let i = diasPeriodo - 1; i >= 0; i--) {
-    const fecha = new Date()
-    fecha.setDate(fecha.getDate() - i)
-    fecha.setHours(0, 0, 0, 0)
-    diasArray.push(fecha)
-  }
+  // Fetch al montar y cada vez que cambia el periodo
+  useEffect(() => {
+    fetchReporteFinanzas(diasPeriodo)
+  }, [diasPeriodo])
 
-  // Filtrar historial del periodo
-  const inicioPeriodo = new Date(diasArray[0])
-  const historialPeriodo = historial.filter(h => new Date(h.hora) >= inicioPeriodo)
+  const { transacciones, asistencias_grafico, granularidad } = reporteFinanzas
+  const moneda = configuracion?.moneda || 'S/'
 
-  // Calcular datos por dia
-  const datosPorDia = diasArray.map(dia => {
-    const registrosDelDia = historialPeriodo.filter(h => mismodia(new Date(h.hora), dia))
-    const asistencias = registrosDelDia.filter(h => h.tipo === 'asistencia' || h.tipo === 'cobro_asistencia').length
-    const ingresos = registrosDelDia
-      .filter(h => h.tipo === 'cobro' || h.tipo === 'cobro_asistencia')
-      .reduce((sum, h) => sum + extraerMonto(h.detalle), 0)
-    return { fecha: dia, asistencias, ingresos }
+  // --- KPIs desde datos reales de la BD ---
+  const totalIngresos = transacciones.reduce((sum, t) => sum + (parseFloat(t.monto) || 0), 0)
+  const totalCobros = transacciones.length
+  const totalAsistencias = asistencias_grafico.reduce((sum, dia) => sum + (parseInt(dia.total) || 0), 0)
+
+  // Construir mapa de ingresos por fecha/mes desde transacciones
+  const ingresosPorFecha = {}
+  transacciones.forEach(t => {
+    const fechaRaw = t.fecha?.split(' ')[0] // "2026-03-26 14:00:00" → "2026-03-26"
+    if (!fechaRaw) return
+    // Para granularidad 'mes', agrupar por YYYY-MM
+    const key = granularidad === 'mes' ? fechaRaw.slice(0, 7) : fechaRaw
+    ingresosPorFecha[key] = (ingresosPorFecha[key] || 0) + (parseFloat(t.monto) || 0)
   })
 
-  // Totales del periodo
-  const totalAsistencias = datosPorDia.reduce((s, d) => s + d.asistencias, 0)
-  const totalIngresos = datosPorDia.reduce((s, d) => s + d.ingresos, 0)
-  const totalCobros = historialPeriodo.filter(h => h.tipo === 'cobro' || h.tipo === 'cobro_asistencia').length
-  const promedioAsistencias = diasPeriodo > 0 ? (totalAsistencias / diasPeriodo).toFixed(1) : 0
+  // Construir mapa de asistencias por fecha/mes
+  const asistenciasPorFecha = {}
+  asistencias_grafico.forEach(dia => {
+    asistenciasPorFecha[dia.fecha] = parseInt(dia.total) || 0
+  })
 
-  // Ocupación: % de miembros activos que asistieron al menos 1 vez en el periodo
+  // Generar array de claves para el eje X de los graficos
+  let ejeX = []
+  if (esGeneral) {
+    // Modo General: usar las fechas que devuelve el backend (ya agrupadas por mes)
+    const fechasAsistencias = asistencias_grafico.map(d => d.fecha)
+    const fechasIngresos = Object.keys(ingresosPorFecha)
+    const todasLasFechas = [...new Set([...fechasAsistencias, ...fechasIngresos])].sort()
+    ejeX = todasLasFechas
+  } else {
+    // Modo normal (7/14/30 dias): generar dias consecutivos
+    for (let i = diasPeriodo - 1; i >= 0; i--) {
+      const fecha = new Date()
+      fecha.setDate(fecha.getDate() - i)
+      const key = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`
+      ejeX.push(key)
+    }
+  }
+
+  // Detectar "hoy" o "mes actual" para resaltar la barra
+  const ahora = new Date()
+  const hoyKey = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`
+  const mesActualKey = hoyKey.slice(0, 7)
+
+  const datosPorDia = ejeX.map(fecha => ({
+    fecha,
+    asistencias: asistenciasPorFecha[fecha] || 0,
+    ingresos: ingresosPorFecha[fecha] || 0,
+  }))
+
+  // Ocupacion
   const miembrosActivos = miembros.filter(m => m.estado === 'activo' || m.estado === 'pase_activo').length
   const miembrosQueAsistieron = new Set(
-    historialPeriodo
-      .filter(h => h.tipo === 'asistencia' || h.tipo === 'cobro_asistencia')
-      .map(h => h.miembroId)
-      .filter(Boolean)
+    transacciones
+      .filter(t => t.miembro_id)
+      .map(t => t.miembro_id)
   ).size
   const porcentajeOcupacion = miembrosActivos > 0 ? Math.round((miembrosQueAsistieron / miembrosActivos) * 100) : 0
 
@@ -99,18 +137,13 @@ export default function ReportesView() {
     descargarCSV(csv, 'miembros_tramusa.csv')
   }
 
-  function exportarHistorialCSV() {
-    const encabezados = ['Fecha', 'Hora', 'Turno', 'Tipo', 'Titulo', 'Detalle']
-    const filas = historial.map(h => {
-      const fecha = new Date(h.hora)
-      return [
-        fecha.toLocaleDateString('es-PE'),
-        fecha.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
-        h.turno, h.tipo, h.titulo, h.detalle
-      ]
-    })
+  function exportarTransaccionesCSV() {
+    const encabezados = ['Fecha', 'Concepto', 'Monto', 'Metodo', 'Miembro ID']
+    const filas = transacciones.map(t => [
+      t.fecha, t.concepto || '', t.monto, t.metodo_pago || '', t.miembro_id || ''
+    ])
     const csv = [encabezados, ...filas].map(f => f.map(c => `"${c}"`).join(',')).join('\n')
-    descargarCSV(csv, 'historial_tramusa.csv')
+    descargarCSV(csv, 'transacciones_tramusa.csv')
   }
 
   function descargarCSV(contenido, nombre) {
@@ -124,7 +157,11 @@ export default function ReportesView() {
   }
 
   // Decidir cuantas etiquetas mostrar en el eje X
-  const mostrarCada = diasPeriodo <= 7 ? 1 : diasPeriodo <= 14 ? 2 : 4
+  const totalBarras = datosPorDia.length
+  const mostrarCada = totalBarras <= 7 ? 1 : totalBarras <= 14 ? 2 : totalBarras <= 30 ? 4 : Math.ceil(totalBarras / 8)
+
+  // Etiqueta de la tarjeta de ingresos segun periodo
+  const etiquetaPeriodo = esGeneral ? 'historico total' : 'en el periodo'
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
@@ -155,8 +192,8 @@ export default function ReportesView() {
             <div className="p-2.5 bg-violet-50 dark:bg-violet-500/10 rounded-xl"><DollarSign size={20} className="text-violet-600 dark:text-violet-400" /></div>
             <span className="text-sm text-slate-500 dark:text-slate-400">Ingresos</span>
           </div>
-          <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">S/ {totalIngresos.toFixed(2)}</p>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{totalCobros} cobros en el periodo</p>
+          <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{moneda} {totalIngresos.toFixed(2)}</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{totalCobros} cobros {etiquetaPeriodo}</p>
         </div>
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm dark:shadow-none border border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3 mb-3">
@@ -164,12 +201,12 @@ export default function ReportesView() {
             <span className="text-sm text-slate-500 dark:text-slate-400">Asistencias</span>
           </div>
           <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{totalAsistencias}</p>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">entradas en el periodo</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">entradas {etiquetaPeriodo}</p>
         </div>
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm dark:shadow-none border border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2.5 bg-blue-50 dark:bg-blue-500/10 rounded-xl"><TrendingUp size={20} className="text-blue-600 dark:text-blue-400" /></div>
-            <span className="text-sm text-slate-500 dark:text-slate-400">Ocupación</span>
+            <span className="text-sm text-slate-500 dark:text-slate-400">Ocupacion</span>
           </div>
           <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{porcentajeOcupacion}%</p>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{miembrosQueAsistieron} de {miembrosActivos} miembros vinieron</p>
@@ -186,24 +223,25 @@ export default function ReportesView() {
 
       {/* Graficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Grafico de barras - Asistencias por dia */}
+        {/* Grafico de barras - Asistencias */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm dark:shadow-none border border-slate-100 dark:border-slate-800 p-6">
-          <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-4">Asistencias por dia</h3>
+          <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-4">
+            {granularidad === 'mes' ? 'Asistencias por mes' : 'Asistencias por dia'}
+          </h3>
           <div className="flex items-end gap-1 h-40">
             {datosPorDia.map((d, i) => {
               const altura = maxAsistencias > 0 ? (d.asistencias / maxAsistencias) * 100 : 0
-              const esHoy = mismodia(d.fecha, new Date())
+              const esActual = granularidad === 'mes' ? d.fecha === mesActualKey : d.fecha === hoyKey
               return (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
-                  {/* Tooltip */}
                   <div className="absolute bottom-full mb-2 hidden group-hover:block bg-slate-800 dark:bg-slate-700 text-white text-[10px] px-2 py-1 rounded-lg whitespace-nowrap z-10">
-                    {formatFechaCorta(d.fecha)}: {d.asistencias} entradas
+                    {formatTooltip(d.fecha, granularidad)}: {d.asistencias} entradas
                   </div>
                   {d.asistencias > 0 && (
                     <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">{d.asistencias}</span>
                   )}
                   <div
-                    className={`w-full rounded-t-md transition-all ${esHoy ? 'bg-red-500' : 'bg-emerald-400 dark:bg-emerald-500'} group-hover:opacity-80`}
+                    className={`w-full rounded-t-md transition-all ${esActual ? 'bg-red-500' : 'bg-emerald-400 dark:bg-emerald-500'} group-hover:opacity-80`}
                     style={{ height: `${Math.max(altura, 2)}%`, minHeight: '2px' }}
                   />
                 </div>
@@ -216,7 +254,7 @@ export default function ReportesView() {
               <div key={i} className="flex-1 text-center">
                 {i % mostrarCada === 0 && (
                   <span className="text-[9px] text-slate-400 dark:text-slate-500">
-                    {d.fecha.getDate()}/{d.fecha.getMonth() + 1}
+                    {formatEtiqueta(d.fecha, granularidad)}
                   </span>
                 )}
               </div>
@@ -225,32 +263,34 @@ export default function ReportesView() {
           <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-sm bg-emerald-400 dark:bg-emerald-500" />
-              <span className="text-[10px] text-slate-400 dark:text-slate-500">Dias anteriores</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500">{granularidad === 'mes' ? 'Meses anteriores' : 'Dias anteriores'}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-sm bg-red-500" />
-              <span className="text-[10px] text-slate-400 dark:text-slate-500">Hoy</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500">{granularidad === 'mes' ? 'Mes actual' : 'Hoy'}</span>
             </div>
           </div>
         </div>
 
-        {/* Grafico de barras - Ingresos por dia */}
+        {/* Grafico de barras - Ingresos */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm dark:shadow-none border border-slate-100 dark:border-slate-800 p-6">
-          <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-4">Ingresos por dia</h3>
+          <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-4">
+            {granularidad === 'mes' ? 'Ingresos por mes' : 'Ingresos por dia'}
+          </h3>
           <div className="flex items-end gap-1 h-40">
             {datosPorDia.map((d, i) => {
               const altura = maxIngresos > 0 ? (d.ingresos / maxIngresos) * 100 : 0
-              const esHoy = mismodia(d.fecha, new Date())
+              const esActual = granularidad === 'mes' ? d.fecha === mesActualKey : d.fecha === hoyKey
               return (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
                   <div className="absolute bottom-full mb-2 hidden group-hover:block bg-slate-800 dark:bg-slate-700 text-white text-[10px] px-2 py-1 rounded-lg whitespace-nowrap z-10">
-                    {formatFechaCorta(d.fecha)}: S/ {d.ingresos.toFixed(2)}
+                    {formatTooltip(d.fecha, granularidad)}: {moneda} {d.ingresos.toFixed(2)}
                   </div>
                   {d.ingresos > 0 && (
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">S/{d.ingresos.toFixed(0)}</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">{moneda}{d.ingresos.toFixed(0)}</span>
                   )}
                   <div
-                    className={`w-full rounded-t-md transition-all ${esHoy ? 'bg-red-500' : 'bg-violet-400 dark:bg-violet-500'} group-hover:opacity-80`}
+                    className={`w-full rounded-t-md transition-all ${esActual ? 'bg-red-500' : 'bg-violet-400 dark:bg-violet-500'} group-hover:opacity-80`}
                     style={{ height: `${Math.max(altura, 2)}%`, minHeight: '2px' }}
                   />
                 </div>
@@ -262,7 +302,7 @@ export default function ReportesView() {
               <div key={i} className="flex-1 text-center">
                 {i % mostrarCada === 0 && (
                   <span className="text-[9px] text-slate-400 dark:text-slate-500">
-                    {d.fecha.getDate()}/{d.fecha.getMonth() + 1}
+                    {formatEtiqueta(d.fecha, granularidad)}
                   </span>
                 )}
               </div>
@@ -271,11 +311,11 @@ export default function ReportesView() {
           <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-sm bg-violet-400 dark:bg-violet-500" />
-              <span className="text-[10px] text-slate-400 dark:text-slate-500">Dias anteriores</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500">{granularidad === 'mes' ? 'Meses anteriores' : 'Dias anteriores'}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-sm bg-red-500" />
-              <span className="text-[10px] text-slate-400 dark:text-slate-500">Hoy</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500">{granularidad === 'mes' ? 'Mes actual' : 'Hoy'}</span>
             </div>
           </div>
         </div>
@@ -365,11 +405,11 @@ export default function ReportesView() {
                 Miembros CSV
               </button>
               <button
-                onClick={exportarHistorialCSV}
+                onClick={exportarTransaccionesCSV}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <Download size={15} />
-                Historial CSV
+                Transacciones CSV
               </button>
             </div>
           </div>

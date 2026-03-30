@@ -15,7 +15,7 @@ import { AsistenciaQRScanner } from './AsistenciaQRScanner'
 
 export default function RegistrarAsistenciaView({ usuario, miembroPreSeleccionado, setMiembroPreSeleccionado }) {
   const { mostrarToast } = useToast()
-  const { miembros, historial, actualizarMiembro, agregarRegistro, actualizarRegistro, eliminarRegistro, fetchMiembros, fetchHistorial, registrarTransaccion, registrarVisitaLibre: registrarVisitaLibreBD } = useGym()
+  const { miembros, historial, actualizarMiembro, agregarRegistro, actualizarRegistro, eliminarRegistro, fetchMiembros, fetchHistorial, registrarTransaccion, registrarVisitaLibre: registrarVisitaLibreBD, renovarMiembro } = useGym()
 
   const [busqueda, setBusqueda] = useState('')
   const [resultadosBusqueda, setResultadosBusqueda] = useState([])
@@ -195,27 +195,16 @@ export default function RegistrarAsistenciaView({ usuario, miembroPreSeleccionad
     const fechaFinFormateada = `${day}/${month}/${year}`
     const nombrePlanCorto = datos.planLabel.split(' ')[0]
 
-    // Registrar transacción en la BD (MySQL)
-    await registrarTransaccion({
-      concepto: `Renovación de Plan - ${datos.planLabel}`,
+    await renovarMiembro(clienteSeleccionado.id, {
+      plan: nombrePlanCorto,
+      planLabel: datos.planLabel,
+      fechaFin: fechaFinFormateada,
       monto,
-      metodo_pago: 'Efectivo',
-      miembro_id: clienteSeleccionado.id,
+      turno: datos.turno,
+      recibo: datos.recibo,
+      nombreMiembro: clienteSeleccionado.nombre,
     })
 
-    actualizarMiembro(clienteSeleccionado.id, {
-      estado: 'activo',
-      plan: nombrePlanCorto,
-      fin: fechaFinFormateada,
-      diasRestantes: undefined,
-      turno: datos.turno || undefined,
-    })
-    agregarRegistro({
-      tipo: 'cobro',
-      titulo: `Renovacion: ${clienteSeleccionado.nombre}`,
-      detalle: `Plan: ${datos.planLabel} - Pago: S/ ${monto.toFixed(2)}`,
-      recibo: datos.recibo || undefined,
-    })
     mostrarToast(`Suscripcion renovada: ${clienteSeleccionado.nombre} - ${datos.planLabel}`)
     setMostrarModalRenovacion(false)
     limpiarBusqueda()

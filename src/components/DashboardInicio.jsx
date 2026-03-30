@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Users, CalendarCheck, AlertTriangle, CircleDollarSign, UserPlus, ScanLine, Clock, ChevronRight, BookOpen, MessageCircle, User, CheckCircle2, X, FileText } from 'lucide-react'
 import { useGym } from '../context/GymContext'
 import { formatHora } from '../utils/helpers'
@@ -23,7 +23,7 @@ function diasHastaVencimiento(fechaFinStr) {
 }
 
 export default function DashboardInicio({ userName = 'Dina', setVistaActiva, setMiembroPreSeleccionado }) {
-  const { miembros, historial, resumen, configuracion } = useGym()
+  const { miembros, historial, resumen, configuracion, actividadReciente, revisarVencimientos } = useGym()
 
   // Modal Express
   const [miembroModal, setMiembroModal] = useState(null)
@@ -31,6 +31,20 @@ export default function DashboardInicio({ userName = 'Dina', setVistaActiva, set
 
   // Slide-over historial
   const [mostrarHistorialCompleto, setMostrarHistorialCompleto] = useState(false)
+
+  // Detector de cambio de día: si la app queda abierta toda la noche,
+  // al cruzar medianoche se recalculan vencimientos automáticamente
+  const diaRef = useRef(new Date().getDate())
+  useEffect(() => {
+    const intervalo = setInterval(() => {
+      const diaActual = new Date().getDate()
+      if (diaActual !== diaRef.current) {
+        diaRef.current = diaActual
+        revisarVencimientos()
+      }
+    }, 60_000) // revisa cada 60 segundos
+    return () => clearInterval(intervalo)
+  }, [revisarVencimientos])
 
   // --- Métricas reales desde GymContext ---
   const activos = miembros.filter(m => m.estado === 'activo').length
@@ -45,8 +59,6 @@ export default function DashboardInicio({ userName = 'Dina', setVistaActiva, set
     .sort((a, b) => a.diasRestantesVenc - b.diasRestantesVenc)
     .slice(0, 6)
 
-  // Actividad reciente (últimos 5)
-  const actividadReciente = historial.slice(0, 5)
 
   // --- Funciones del Modal Express ---
   const handleEnviarRecordatorio = () => {
@@ -62,8 +74,21 @@ export default function DashboardInicio({ userName = 'Dina', setVistaActiva, set
         ? 'vence mañana'
         : `vence en ${miembroModal.diasRestantesVenc} días`
 
-    const mensaje = `¡Hola *${miembroModal.nombre}*! 👋\nTe escribimos de *TRAMUSA S.A.* para recordarte que tu plan ${miembroModal.plan} ${diasTexto}. ¡Te esperamos para renovar y seguir entrenando! 💪`
-    const celular = miembroModal.celular ? `51${miembroModal.celular}` : ''
+    const fechaFinFormateada = miembroModal.fin
+      ? new Date(miembroModal.fin).toLocaleDateString('es-PE')
+      : 'N/A'
+
+    const plantilla = configuracion.plantilla_whatsapp
+    const mensaje = plantilla
+      ? plantilla
+          .replace(/\[NOMBRE\]/g, miembroModal.nombre)
+          .replace(/\[PLAN\]/g, miembroModal.plan)
+          .replace(/\[DIAS\]/g, diasTexto)
+          .replace(/\[FECHA_FIN\]/g, fechaFinFormateada)
+          .replace(/\[GIMNASIO\]/g, configuracion.nombre_gimnasio || 'TRAMUSA S.A.')
+      : `¡Hola *${miembroModal.nombre}*! 👋\nTe escribimos de *${configuracion.nombre_gimnasio || 'TRAMUSA S.A.'}* para recordarte que tu plan ${miembroModal.plan} ${diasTexto}. ¡Te esperamos para renovar y seguir entrenando! 💪`
+    const telefonoLimpio = miembroModal.celular ? miembroModal.celular.replace(/\D/g, '') : ''
+    const celular = telefonoLimpio ? (telefonoLimpio.startsWith('51') ? telefonoLimpio : `51${telefonoLimpio}`) : ''
     const url = celular
       ? `https://wa.me/${celular}?text=${encodeURIComponent(mensaje)}`
       : `https://wa.me/?text=${encodeURIComponent(mensaje)}`
@@ -238,30 +263,25 @@ export default function DashboardInicio({ userName = 'Dina', setVistaActiva, set
             </button>
           </div>
 
-          {actividadReciente.length === 0 ? (
+          {(!actividadReciente || actividadReciente.length === 0) ? (
             <div className="flex flex-col items-center justify-center py-8 text-slate-400 dark:text-slate-500 flex-1">
               <Clock size={32} className="mb-2 opacity-50" />
               <p className="text-sm">Sin actividad registrada hoy</p>
             </div>
           ) : (
             <ul className="space-y-2">
-              {actividadReciente.map(item => (
+              {actividadReciente.slice(0, 5).map((registro, index) => (
                 <li
-                  key={item.id}
+                  key={index}
                   className="flex items-center gap-3 p-3 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 border border-transparent"
                 >
-                  <span className="text-xs font-mono font-semibold text-slate-400 dark:text-slate-500 w-12 shrink-0">
-                    {formatHora(item.hora)}
+                  <span className="text-xs font-mono font-semibold text-slate-400 dark:text-slate-500 w-16 shrink-0 text-center">
+                    {formatHora(new Date(registro.fecha))}
                   </span>
                   <div className="flex-1 min-w-0">
-                    {item.tipo === 'asistencia' && <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 mb-0.5">ENTRADA</span>}
-                    {item.tipo === 'cobro' && <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 mb-0.5">COBRO</span>}
-                    {item.tipo === 'cobro_asistencia' && <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 mb-0.5">COBRO+ENTRADA</span>}
-                    <p className="text-sm text-slate-700 dark:text-slate-200 font-medium truncate">{item.titulo}</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-200 font-medium truncate">{registro.titulo}</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate uppercase font-bold">{registro.detalle}</p>
                   </div>
-                  <span className="bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300 rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0">
-                    {item.turno}
-                  </span>
                 </li>
               ))}
             </ul>

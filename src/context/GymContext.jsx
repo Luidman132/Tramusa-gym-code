@@ -12,12 +12,34 @@ export function GymProvider({ children }) {
     telefono: '',
     direccion: '',
     mensaje_ticket: '',
+    logo_base64: null,
+    plantilla_whatsapp: '',
   })
   const [resumen, setResumen] = useState({
     ingresos_hoy: 0,
     miembros_activos: 0,
     asistencias_hoy: 0,
   })
+  const [actividadReciente, setActividadReciente] = useState([])
+  const [reporteFinanzas, setReporteFinanzas] = useState({ transacciones: [], asistencias_grafico: [], granularidad: 'dia' })
+
+  async function fetchReporteFinanzas(dias = 7) {
+    try {
+      const response = await fetch(`http://localhost:8888/tramusagym-api/obtener_transacciones.php?dias=${dias}&t=${new Date().getTime()}`)
+      const data = await response.json()
+      if (data.success) {
+        setReporteFinanzas({
+          transacciones: data.transacciones || [],
+          asistencias_grafico: data.asistencias_grafico || [],
+          granularidad: data.granularidad || 'dia',
+        })
+      } else {
+        console.warn('[fetchReporteFinanzas] Error del servidor:', data.mensaje)
+      }
+    } catch (error) {
+      console.warn('[fetchReporteFinanzas] Error de conexión:', error)
+    }
+  }
 
   const fetchConfiguracion = async () => {
     try {
@@ -32,10 +54,24 @@ export function GymProvider({ children }) {
           telefono: c.telefono || '',
           direccion: c.direccion || '',
           mensaje_ticket: c.mensaje_ticket || '',
+          logo_base64: c.logo_base64 || null,
+          plantilla_whatsapp: c.plantilla_whatsapp || '',
         }))
       }
     } catch (error) {
       console.warn('[fetchConfiguracion] Error de conexión:', error)
+    }
+  }
+
+  async function fetchActividadReciente() {
+    try {
+      const response = await fetch(`http://localhost:8888/tramusagym-api/obtener_actividad_reciente.php?t=${new Date().getTime()}`)
+      const data = await response.json()
+      if (data.actividad_reciente) {
+        setActividadReciente(data.actividad_reciente)
+      }
+    } catch (error) {
+      console.warn('[fetchActividadReciente] Error:', error)
     }
   }
 
@@ -51,6 +87,7 @@ export function GymProvider({ children }) {
           asistencias_hoy: Number(data.asistencias_hoy) || 0,
         })
       }
+      await fetchActividadReciente();
     } catch (error) {
       console.warn('[fetchResumen] Error de conexión:', error)
     }
@@ -180,6 +217,11 @@ export function GymProvider({ children }) {
       console.error("[fetchHistorial] Error de conexión:", error);
     }
   };
+
+  // Refresca miembros + resumen para recalcular vencimientos con la fecha actual
+  async function revisarVencimientos() {
+    await Promise.all([fetchMiembros(), fetchResumen()])
+  }
 
   useEffect(() => {
     fetchPlanes()
@@ -476,6 +518,66 @@ export function GymProvider({ children }) {
     }
   }
 
+  async function renovarMiembro(id, datosRenovacion) {
+    const { plan, planLabel, fechaInicio, fechaFin, monto, turno, recibo, nombreMiembro } = datosRenovacion
+
+    try {
+      // 1. Actualizar estado del miembro en la BD
+      const resActualizar = await actualizarMiembro(id, {
+        estado: 'activo',
+        plan: plan,
+        inicio: fechaInicio || undefined,
+        fin: fechaFin,
+        turno: turno || undefined,
+      })
+
+      // 2. Registrar el cobro como transacción en la BD
+      const resTransaccion = await registrarTransaccion({
+        concepto: `Renovación de Plan - ${planLabel || plan}`,
+        monto: Number(monto) || 0,
+        metodo_pago: 'Efectivo',
+        miembro_id: id,
+      })
+
+      // 3. Registrar en el historial de actividad
+      agregarRegistro({
+        tipo: 'cobro',
+        titulo: `Renovación: ${nombreMiembro}`,
+        detalle: `Plan: ${planLabel || plan} - Pago: S/ ${Number(monto).toFixed(2)}`,
+        recibo: recibo || undefined,
+        miembroId: id,
+      })
+
+      return {
+        success: resActualizar?.success !== false && resTransaccion?.success !== false,
+      }
+    } catch (error) {
+      console.error('[renovarMiembro] Error:', error)
+      return { success: false }
+    }
+  }
+
+  async function eliminarMiembro(id) {
+    try {
+      const response = await fetch('http://localhost:8888/tramusagym-api/eliminar_miembro.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      })
+      const data = await response.json()
+      if (data.success) {
+        setMiembros(prev => prev.filter(m => m.id !== id))
+        return { success: true }
+      } else {
+        console.error('[eliminarMiembro] Error del servidor:', data.mensaje)
+        return { success: false, mensaje: data.mensaje }
+      }
+    } catch (error) {
+      console.error('[eliminarMiembro] Error de conexión:', error)
+      return { success: false }
+    }
+  }
+
   const guardarConfiguracion = async (nuevosDatos) => {
     try {
       const payload = {
@@ -484,6 +586,8 @@ export function GymProvider({ children }) {
         telefono: nuevosDatos.telefono,
         direccion: nuevosDatos.direccion,
         mensaje_ticket: nuevosDatos.mensaje_ticket,
+        logo_base64: nuevosDatos.logo_base64 || null,
+        plantilla_whatsapp: nuevosDatos.plantilla_whatsapp || null,
       }
       const response = await fetch('http://localhost:8888/tramusagym-api/guardar_configuracion.php', {
         method: 'POST',
@@ -511,6 +615,7 @@ export function GymProvider({ children }) {
       planes,
       configuracion,
       resumen,
+      actividadReciente,
       fetchResumen,
       agregarMiembro,
       actualizarMiembro,
@@ -525,6 +630,11 @@ export function GymProvider({ children }) {
       toggleActivoPlan,
       registrarTransaccion,
       registrarVisitaLibre,
+      renovarMiembro,
+      eliminarMiembro,
+      revisarVencimientos,
+      reporteFinanzas,
+      fetchReporteFinanzas,
       guardarConfiguracion,
     }}>
       {children}

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Search, UserPlus, ChevronRight, ArrowLeft, UserCircle, Phone, Mail, ShieldAlert, CalendarDays, CreditCard, CheckCircle, X, QrCode, Download, Edit2, Save } from 'lucide-react'
+import { Search, UserPlus, ChevronRight, ArrowLeft, UserCircle, Phone, Mail, ShieldAlert, CalendarDays, CreditCard, CheckCircle, X, QrCode, Download, Edit2, Save, Trash2 } from 'lucide-react'
 import QRCode from 'react-qr-code'
 import { toPng } from 'html-to-image'
 import { useGym } from '../context/GymContext'
@@ -23,8 +23,8 @@ const estadoTexto = {
   congelado: 'Congelado',
 }
 
-export default function MiembrosView({ setVistaActiva, miembroPreSeleccionado, setMiembroPreSeleccionado }) {
-  const { miembros, planes, configuracion, actualizarMiembro, agregarRegistro } = useGym()
+export default function MiembrosView({ usuario, setVistaActiva, miembroPreSeleccionado, setMiembroPreSeleccionado }) {
+  const { miembros, planes, configuracion, actualizarMiembro, agregarRegistro, renovarMiembro, eliminarMiembro } = useGym()
   const { mostrarToast } = useToast()
   const [busqueda, setBusqueda] = useState('')
   const [filtroEstado, setFiltroEstado] = useState('todos')
@@ -113,7 +113,7 @@ export default function MiembrosView({ setVistaActiva, miembroPreSeleccionado, s
     return `${y}-${m}-${d}`
   }
 
-  function confirmarRenovacion() {
+  async function confirmarRenovacion() {
     const planObj = planesActivos.find(p => String(p.id) === String(renovarPlan))
     if (!planObj) return
 
@@ -122,31 +122,24 @@ export default function MiembrosView({ setVistaActiva, miembroPreSeleccionado, s
     const fechaFin = new Date(hoy)
     fechaFin.setDate(fechaFin.getDate() + (planObj.duracionDias || 30))
 
-    const cambios = {
-      estado: 'activo',
-      plan: planObj.nombre,
-      inicio: formatFechaISO(hoy),
-      fin: formatFechaISO(fechaFin),
-    }
-
-    // 1. Actualizar estado global del miembro
-    actualizarMiembro(miembroViendo.id, cambios)
-
-    // 2. Registrar el cobro en el historial
+    const fechaInicioStr = formatFechaISO(hoy)
+    const fechaFinStr = formatFechaISO(fechaFin)
     const montoFinal = renovarMonto || String(planObj.precio.toFixed(2))
-    agregarRegistro({
-      tipo: 'cobro',
-      titulo: `Renovación - ${miembroViendo.nombre}`,
-      detalle: `Cobro renovación ${planObj.nombre}: S/ ${montoFinal}. Cliente: ${miembroViendo.nombre}`,
-      miembroId: miembroViendo.id,
+
+    await renovarMiembro(miembroViendo.id, {
+      plan: planObj.nombre,
+      planLabel: planObj.nombre,
+      fechaInicio: fechaInicioStr,
+      fechaFin: fechaFinStr,
+      monto: montoFinal,
+      nombreMiembro: miembroViendo.nombre,
     })
 
-    // 3. Actualizar vista local
-    const miembroActualizado = { ...miembroViendo, ...cambios }
-    setMiembroViendo(miembroActualizado)
+    // Actualizar vista local y abrir resumen
+    const cambios = { estado: 'activo', plan: planObj.nombre, inicio: fechaInicioStr, fin: fechaFinStr }
+    setMiembroViendo(prev => ({ ...prev, ...cambios }))
     setMostrarModalRenovacion(false)
 
-    // 4. Abrir Resumen de Operación
     setResumenOperacion({
       tipo: 'renovacion',
       nombre: miembroViendo.nombre,
@@ -157,8 +150,8 @@ export default function MiembrosView({ setVistaActiva, miembroPreSeleccionado, s
       contactoTelefono: miembroViendo.contactoTelefono,
       plan: planObj.nombre,
       duracion: planObj.duracion,
-      inicio: cambios.inicio,
-      fin: cambios.fin,
+      inicio: fechaInicioStr,
+      fin: fechaFinStr,
       monto: montoFinal,
       qrToken: miembroViendo.qrToken,
     })
@@ -350,6 +343,24 @@ export default function MiembrosView({ setVistaActiva, miembroPreSeleccionado, s
                     <QrCode size={18} className="text-emerald-600 dark:text-emerald-400" />
                     Ver QR
                   </button>
+                  {usuario?.rol?.toLowerCase() === 'admin' && (
+                    <button
+                      onClick={async () => {
+                        if (!window.confirm(`¿Estás seguro de que deseas eliminar a ${miembroViendo.nombre}? Esta acción no se puede deshacer.`)) return
+                        const res = await eliminarMiembro(miembroViendo.id)
+                        if (res.success) {
+                          setMiembroViendo(null)
+                          mostrarToast('Miembro eliminado correctamente')
+                        } else {
+                          mostrarToast(res.mensaje || 'Error al eliminar miembro', 'error')
+                        }
+                      }}
+                      className="flex items-center justify-center gap-2 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20 px-4 py-2.5 rounded-xl font-medium transition-colors text-sm shadow-sm cursor-pointer"
+                    >
+                      <Trash2 size={16} />
+                      Eliminar
+                    </button>
+                  )}
                   <span className={`px-4 py-2 text-sm font-bold rounded-full ${estadoBadge[miembroViendo.estado]}`}>
                     {estadoTexto[miembroViendo.estado]}
                   </span>
